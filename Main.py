@@ -1,24 +1,6 @@
 import math
 import csv
-
-with open('WSC Route Data.csv') as csv_file:
-    routeReader = csv.reader(csv_file,delimiter = ',')
-    lineCount=0
-    for row in routeReader:
-        if lineCount == 0:
-            DataPoints = [tuple((row[0],row[1],row[2]))]
-            lineCount+=1
-        else:
-            DataPoints.append(tuple((float(row[0]),float(row[1]),float(row[2]))))
-
-    
-#for x in range(len(DataPoints)):
-    #EMM_writer.writerow()
-        
-#for x in DataPoints:
-#    print(x[0],x[1],x[2])      
-
-print(len(DataPoints))
+import time
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
     return 0.5*p*(V/3.6)**3*A*Cd
@@ -46,32 +28,56 @@ def Batt_Power(Pdrag,Prr,Pg,Parr,MotorEff,Pelec):
     return ((Pdrag+Prr+Pg)/MotorEff)+Pelec-Parr
 
 def Energy(Power, Time):
-    return Power*Time
-    
+    return Power*Time/1000
+
+#Vehicle Specifications
 A = 2.38    #Frontal area of solar car
 Cd = 0.19   #Drag Coefficient of solar car
-p = 1.17    #density of air
-V=list((56.34,))
-
-for x in range(len(DataPoints)-1): 
-    V.append(56.34)  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1
-
-print(type(V))
-
-print(len(V))
 Crr = 0.0055    #Rolling Resistance coefficient
 Car_Mass = 300  #Mass of solar car without passengers
 Num_Passengers = 5  #Number of passengers in solar car
 Loaded_Weight = Car_Mass+Num_Passengers*80  #Mass of solar car with passengers
 MotEff = 0.98
 
-print(Loaded_Weight)
-#print(Aero_Power(A,Cd,p,V))
-#print(Roll_Resist(Crr,V,713.5575943))
-print(Haversine(39.09215,39.09216,-94.41626,-94.41639,6371))
-print(Grav_Power(56.34,713.5575943,Haversine(39.09215,39.09216,-94.41626,-94.41639,6371),319.1,319.4))
+#Possible Changing Variables
+p = 1.17    #density of air
+
+#Changing Variables
+Velocity = []
+Latitude = []
+Longitude = []
+Altitude = []
+
+
+with open('WSC Route Data.csv') as csv_file:
+    routeReader = csv.reader(csv_file,delimiter = ',')
+    lineCount=0
+    for row in routeReader:
+        if lineCount == 0:
+            lineCount += 1
+            continue
+        Latitude.append(float(row[0]))
+        Longitude.append(float(row[1]))
+        Altitude.append(float(row[2]))
+        lineCount += 1
+
+Num_Data = lineCount-2
+
+for x in range(Num_Data): 
+    Velocity.append(56.34)  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1
 
 EMM_Data=[list(("Distance", "Velocity","Time","Drag Power","Prr","Gravitational Power","Parasitic Power","Array Power","Battery Power","Battery Energy"))]
+for x in range(Num_Data):
+    dist=Haversine(Latitude[x],Latitude[x+1], Longitude[x], Longitude [x+1], 6371)
+    time = delta_T(Velocity[x],dist)
+    Pd = Aero_Power(A,Cd, p, Velocity[x])
+    Prr = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
+    Pg = Grav_Power(Velocity[x], Loaded_Weight, dist, Altitude[x], Altitude [x+1])
+    Pp = 50
+    Parr = 500
+    Pbatt = Batt_Power(Pd, Prr, Pg, Parr, MotEff, Pp)
+    Ebatt = Energy(Pbatt, time)
+    EMM_Data.append(list((dist,Velocity[x],time,Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
 
 with open('WSC Energy Management Model.csv', mode = 'w', newline = '') as csv_file_write:
     EMM_writer = csv.writer(csv_file_write, delimiter = ',')
