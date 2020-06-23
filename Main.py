@@ -1,6 +1,6 @@
 import math
 import csv
-import time
+import datetime
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
     return 0.5*p*(V/3.6)**3*A*Cd
@@ -28,7 +28,7 @@ def Haversine(lat1, lat2, long1, long2, r):
     return 2*r*math.asin(math.sqrt(pow(math.sin((lat2-lat1)/2),2)+(math.cos(lat1)*math.cos(lat2)*pow(math.sin((long2-long1)/2),2))))
 
 def delta_T(speed,distance):
-    return distance/speed
+    return datetime.timedelta(hours =distance/speed)
 
 def Batt_Power(Pdrag,Prr,Pg,Parr,MotorEff,Pelec):
     return ((Pdrag+Prr+Pg)/MotorEff)+Pelec-Parr
@@ -47,6 +47,9 @@ MotEff = 0.98
 
 #Possible Changing Variables
 p = 1.17    #density of air
+Start_Day = '2021-10-22T09:00:00'
+Start_Time = datetime.datetime.fromisoformat(Start_Day) 
+Time = Start_Time
 
 #Changing Variables
 Velocity = []
@@ -72,18 +75,26 @@ Num_Data = lineCount-2
 for x in range(Num_Data): 
     Velocity.append(56.34)  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1
 
-EMM_Data=[list(("Distance", "Velocity","Time","Drag Power","Prr","Gravitational Power","Parasitic Power","Array Power","Battery Power","Battery Energy"))]
+EMM_Data=[list(("Distance", "Velocity","delta_T","Time","Drag Power","Prr","Gravitational Power","Parasitic Power","Array Power","Battery Power","Battery Energy"))]
 for x in range(Num_Data):
     dist=Haversine(Latitude[x],Latitude[x+1], Longitude[x], Longitude [x+1], 6371)
-    time = delta_T(Velocity[x],dist)
+    dT= delta_T(Velocity[x],dist)
     Pd = Aero_Power(A,Cd, p, Velocity[x])
     Prr = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
     Pg = Grav_Power(Velocity[x], Loaded_Weight, dist, Altitude[x], Altitude [x+1])
     Pp = 50
     Parr = 500
     Pbatt = Batt_Power(Pd, Prr, Pg, Parr, MotEff, Pp)
-    Ebatt = Energy(Pbatt, time)
-    EMM_Data.append(list((dist,Velocity[x],time,Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
+    Ebatt = Energy(Pbatt, dT.total_seconds()/3600)
+    next_Time = Time+dT
+    if next_Time.hour == 18:
+        Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0,)
+        EMM_Data.append(list((dist,Velocity[x],dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
+        continue
+
+    EMM_Data.append(list((dist,Velocity[x],dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
+    Time = Time+dT
+    
 
 with open('WSC Energy Management Model.csv', mode = 'w', newline = '') as csv_file_write:
     EMM_writer = csv.writer(csv_file_write, delimiter = ',')
