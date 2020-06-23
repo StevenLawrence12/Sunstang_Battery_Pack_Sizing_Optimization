@@ -84,12 +84,14 @@ for x in range(Num_Data):
     Pg = Grav_Power(Velocity[x], Loaded_Weight, dist, Altitude[x], Altitude [x+1])
     Pp = 50
     Parr = 500
+    #Parr = Array_Power(Time.timetuple().tm_yday,Latitude[x],Time.hour+(Time.minute/60)+(Time.second/3600)+(Time.microsecond/3600000000),)
     Pbatt = Batt_Power(Pd, Prr, Pg, Parr, MotEff, Pp)
     Ebatt = Energy(Pbatt, dT.total_seconds()/3600)
     next_Time = Time+dT
     if next_Time.hour == 18:
         Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0,)
         EMM_Data.append(list((dist,Velocity[x],dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
+        Time = Time+dT
         continue
 
     EMM_Data.append(list((dist,Velocity[x],dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
