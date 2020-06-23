@@ -8,8 +8,14 @@ def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
 def Roll_Resist(Crr,V,M): #Calculate the power loss from friction/rolling resistance
     return Crr*(1+V/161)*M*9.81*V/3.6
 
-def Array_Power(): #Calculate the power gain from the solar array
-    pass
+def Array_Power(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calculate the power gain from the solar array
+    SLL = 23.5*math.sin((180*(Day-82))/182.5)
+    phi_N = Latitude - SLL
+    phi = 90 - ((90-phi_N)*math.sin((180*(Time-Sunrise))/DayLength))
+    if Driving == True:
+        theta = phi
+    
+    return Pmax*(math.cos(phi)**0.3)*math.cos(theta)
 
 def Grav_Power(V,M,d,alt1,alt2): #Calculate the power loss due to gravitatational effects
     return V*M*9.81*math.sin(math.atan((alt2-alt1)/1000/d))/3.6
