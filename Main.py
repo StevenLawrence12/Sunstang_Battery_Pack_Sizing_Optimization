@@ -99,6 +99,9 @@ def sunrise(latitude, longitude, timezone, date):
     DL = sunset-sunrise
     return sunrise
 
+def conv_to_DT(H, M, S, MS):    #Convert time to military decimal time
+    return H+(M/60}+(S/3600)+(MS/3600000000)
+
 
 #Vehicle Specifications
 A = 2.38                                    #Frontal area of solar car
@@ -126,14 +129,21 @@ Power_Roll = []     #Power consumed from rolling resistance/friction
 Power_Grav = []     #Power fron gravitational forces
 Power_Kine = []     #Power from kinetic forces
 Power_elec = None   #Power consumed from all electronics in the solar car
+Power_batt = []     #Power requirement from batteries
 
-#Time Variables
+#Energy Variables
+Energy_batt = []    #Battery energy requirement
+
+#Date & Time Variables
 Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
 Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
 Date = Time.date()                                      #create date object from Time
 timezone = 9.5                                          #Timezone of the race, will eventually be read in from a csv file
 SR = 0                                                  #Sunrise time
+dT = []
+deci_time = []
 
+Seg_Dist = []       #distance for each segment
 Velocity = []       #List of speeds for the differnce race route segments (km/h)
 
 #Open the race route data and read in geographic data (latitude, longitude, altitude)
@@ -159,7 +169,7 @@ for x in range(Num_Segment):
 EMM_Data=[list(("Distance", "Velocity","Sunrise","delta_T","Time","Drag Power","Prr","Gravitational Power","Parasitic Power","Array Power","Battery Power","Battery Energy"))]
 for x in range(Num_Segment):
     dist=Haversine(Latitude[x],Latitude[x+1], Longitude[x], Longitude [x+1], 6371)
-    dT= delta_T(Velocity[x],dist)
+    dT[x]= delta_T(Velocity[x],dist)
     Pd = Aero_Power(A,Cd, p, Velocity[x])
     Prr = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
     Pg = Grav_Power(Velocity[x], Loaded_Weight, dist, Altitude[x], Altitude [x+1])
