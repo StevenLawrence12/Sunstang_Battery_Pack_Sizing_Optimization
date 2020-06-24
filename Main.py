@@ -1,6 +1,7 @@
 import math
 import csv
 import datetime
+import numpy as np
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
     return 0.5*p*(V/3.6)**3*A*Cd
@@ -100,36 +101,47 @@ def sunrise(latitude, longitude, timezone, date):
 
 
 #Vehicle Specifications
-A = 2.38    #Frontal area of solar car
-Cd = 0.19   #Drag Coefficient of solar car
-Crr = 0.0055    #Rolling Resistance coefficient
-Car_Mass = 300  #Mass of solar car without passengers
-Num_Passengers = 5  #Number of passengers in solar car
+A = 2.38                                    #Frontal area of solar car
+Cd = 0.19                                   #Drag Coefficient of solar car
+Crr = 0.0055                                #Rolling Resistance coefficient
+Car_Mass = 300                              #Mass of solar car without passengers
+Num_Passengers = 5                          #Number of passengers in solar car
 Loaded_Weight = Car_Mass+Num_Passengers*80  #Mass of solar car with passengers
-MotEff = 0.98
+MotEff = 0.98                               #Efficiency of the motor
+Max_Array_Power = 1300                      #Max possible power from the solar array
 
 #Possible Changing Variables
 p = 1.17    #density of air
-Start_Day = '2021-10-22T09:00:00'
-Start_Time = datetime.datetime.fromisoformat(Start_Day)
-Time = Start_Time
-Date = Time.date()
-timezone = 9.5
-SR = 0
-Max_Array_Power = 1300
 
-#Changing Variables
-Velocity = []
-Latitude = []
-Longitude = []
-Altitude = []
+#Geographic Variables
+Latitude = []       #Latitude of all points along the race route (deg)
+Longitude = []      #Longitude of all points along the race route (deg)
+Altitude = []       #altitude of all points along the race route (m)
+Route_Data = []     #List of race route geographic data lists
 
+#Power Variables
+Power_Array = []    #Power obtain from the solar array 
+Power_Drag = []     #Power consumed from aerodynamic drag
+Power_Roll = []     #Power consumed from rolling resistance/friction
+Power_Grav = []     #Power fron gravitational forces
+Power_Kine = []     #Power from kinetic forces
+Power_elec = None   #Power consumed from all electronics in the solar car
 
+#Time Variables
+Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
+Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
+Date = Time.date()                                      #create date object from Time
+timezone = 9.5                                          #Timezone of the race, will eventually be read in from a csv file
+SR = 0                                                  #Sunrise time
+
+Velocity = []       #List of speeds for the differnce race route segments (km/h)
+
+#Open the race route data and read in geographic data (latitude, longitude, altitude)
 with open('WSC Route Data.csv') as csv_file:
     routeReader = csv.reader(csv_file,delimiter = ',')
     lineCount=0
     for row in routeReader:
-        if lineCount == 0:
+        if lineCount == 0: #Skips the header 
             lineCount += 1
             continue
         Latitude.append(float(row[0]))
@@ -137,14 +149,15 @@ with open('WSC Route Data.csv') as csv_file:
         Altitude.append(float(row[2]))
         lineCount += 1
 
-Num_Data = lineCount-2
+
+Num_Segment = lineCount-2 #calculate the number of race route segments
 
 SR = sunrise(Latitude[0], Longitude[0], timezone, Time.date())
-for x in range(Num_Data): 
+for x in range(Num_Segment): 
     Velocity.append(56.34)  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1
 
-EMM_Data=[list(("Distance", "Velocity","delta_T","Time","Drag Power","Prr","Gravitational Power","Parasitic Power","Array Power","Battery Power","Battery Energy"))]
-for x in range(Num_Data):
+EMM_Data=[list(("Distance", "Velocity","Sunrise","delta_T","Time","Drag Power","Prr","Gravitational Power","Parasitic Power","Array Power","Battery Power","Battery Energy"))]
+for x in range(Num_Segment):
     dist=Haversine(Latitude[x],Latitude[x+1], Longitude[x], Longitude [x+1], 6371)
     dT= delta_T(Velocity[x],dist)
     Pd = Aero_Power(A,Cd, p, Velocity[x])
@@ -157,15 +170,16 @@ for x in range(Num_Data):
     next_Time = Time+dT
     if next_Time.hour == 18:
         Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0,)
-        EMM_Data.append(list((dist,Velocity[x],dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
+        EMM_Data.append(list((dist,Velocity[x],SR.time(),dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
         SR = sunrise(Latitude[x], Longitude[x], timezone, Time.date())
         Time = Time+dT
         continue
 
-    EMM_Data.append(list((dist,Velocity[x],dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
-    Time = Time+dT
+    EMM_Data.append(list((dist,Velocity[x],SR.time(),dT.total_seconds(),Time.time(),Pd,Prr,Pg,Pp,Parr,Pbatt,Ebatt)))
+    Time = Time+dTz
 
-
+"""
 with open('WSC Energy Management Model.csv', mode = 'w', newline = '') as csv_file_write:
     EMM_writer = csv.writer(csv_file_write, delimiter = ',')
     EMM_writer.writerows(EMM_Data)
+"""
