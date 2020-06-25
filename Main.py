@@ -102,7 +102,6 @@ def sunrise(latitude, longitude, timezone, date):
 def conv_to_DT(H, M, S, MS):    #Convert time to military decimal time
     return H+(M/60)+(S/3600)+(MS/3600000000)
 
-
 #Vehicle Specifications
 A = 2.38                                    #Frontal area of solar car
 Cd = 0.19                                   #Drag Coefficient of solar car
@@ -139,6 +138,7 @@ EMM_Data = []
 #Date & Time Variables
 Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
 Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
+Time_list=[]
 Date = Time.date()                                      #create date object from Time
 timezone = 9.5                                          #Timezone of the race, will eventually be read in from a csv file
 SR = 0                                                  #Sunrise time
@@ -182,7 +182,7 @@ for x in range(Num_Segment):
     if End_Time.hour == 18:
         Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
         SR = sunrise(Latitude[x], Longitude[x], timezone, Time.date())
-
+    Time_list.append(Time)
     SST.append(Time.time())
     SET.append(Time+dT[x])
    
@@ -196,6 +196,78 @@ for x in range(Num_Segment):
 
     Time = SET[x]
 
+#Code to test out changing velocity values
+Batt_Energy_Ave = round(sum(Energy_batt)/len(Energy_batt),6)
+
+Vel_Ave = sum(Velocity)/len(Energy_batt)
+
+for x in range(Num_Segment):
+    print(x)
+    V_max = 200
+    V_min = 0.0001
+    while(Energy_batt[x] != Batt_Energy_Ave):
+            
+        V_mid = Velocity[x]
+
+
+        Velocity[x] = V_max
+
+        dT[x] = delta_T(Velocity[x],Seg_Dist[x])
+        Currtime = Time_list[x]+dT[x]
+        SET[x] = Currtime.time()
+        Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Latitude[x],conv_to_DT(SST[x].hour,SST[x].minute,SST[x].second,SST[x].microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
+        SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1)
+        Power_Drag[x] = Aero_Power(A, Cd, p, Velocity[x])
+        Power_Roll[x] = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
+        Power_Grav[x] = Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Altitude[x], Altitude[x+1])
+        Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Array[x], MotEff, Power_elec)
+        E_batt_max = Energy(Power_batt[x], dT[x].total_seconds()/3600)
+
+
+        Velocity[x] = V_min
+
+        dT[x] = delta_T(Velocity[x],Seg_Dist[x])
+        Currtime = Time_list[x]+dT[x]
+        SET[x] = Currtime.time()
+        Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Latitude[x],conv_to_DT(SST[x].hour,SST[x].minute,SST[x].second,SST[x].microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
+        SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1)
+        Power_Drag[x] = Aero_Power(A, Cd, p, Velocity[x])
+        Power_Roll[x] = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
+        Power_Grav[x] = Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Altitude[x], Altitude[x+1])
+        Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[0], Power_Grav[x], Power_Array[x], MotEff, Power_elec)
+        E_batt_min = Energy(Power_batt[x], dT[x].total_seconds()/3600)
+
+        E_batt_test = [E_batt_max, E_batt_min]
+
+        E_batt_test = np.asarray(E_batt_test)
+        Closer_vel = E_batt_test[(np.abs(E_batt_test - Batt_Energy_Ave)).argmin()]
+
+
+
+        energyTXT = "Energy is: {}"
+        velocityTXT = "Velocity is: {}"
+        velocityMaxTXT = "Velocity Max is: {}"
+        velocityMinTXT = "Velocity Minis: {}"
+        if Closer_vel == E_batt_max:
+            V_min = V_mid
+            Velocity[x] = V_mid + ((V_max-V_mid)/2)
+            Energy_batt[x] = round(E_batt_max,6)
+            print("Max!")
+            print(velocityMaxTXT.format(V_max))
+            print(velocityMinTXT.format(V_min))
+            print(velocityTXT.format(Velocity[x]))
+            print(energyTXT.format(Energy_batt[x]))
+        elif Closer_vel == E_batt_min:
+            V_max = V_mid
+            Velocity[x] = V_mid - ((V_mid-V_min)/2)
+            Energy_batt[x] = round(E_batt_min,6)
+            print("Min!")
+            print(velocityMaxTXT.format(V_max))
+            print(velocityMinTXT.format(V_min))
+            print(velocityTXT.format(Velocity[x]))
+            print(energyTXT.format(Energy_batt[x]))
+
+#End Code to test out changing velocity values
 
 #Create iterable for csv writing
 EMM_Data.append(Headers)
@@ -203,6 +275,8 @@ for x in range(Num_Segment):
     EMM_Data.append(list((Seg_Dist[x], Velocity[x], SST[x], dT[x], SET[x], Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_elec, Power_batt[x], 
     Energy_batt[x])))
 
+"""
 with open('WSC Energy Management Model.csv', mode = 'w', newline = '') as csv_file_write:
     EMM_writer = csv.writer(csv_file_write, delimiter = ',')
     EMM_writer.writerows(EMM_Data)
+"""
