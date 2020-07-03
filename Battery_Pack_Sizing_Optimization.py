@@ -2,6 +2,7 @@ import math
 import csv
 import datetime
 import numpy as np
+import random
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
     return 0.5*p*(V/3.6)**3*A*Cd
@@ -170,7 +171,7 @@ Num_Segment = lineCount-2 #calculate the number of race route segments
 
 SR = sunrise(Latitude[0], Longitude[0], timezone, Time.date())
 for x in range(Num_Segment): 
-    Velocity.append(56.34)  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1]
+    Velocity.append(random.randrange(25,100))  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1]
 
 #Calculate Powers
 for x in range(Num_Segment):
@@ -196,6 +197,7 @@ for x in range(Num_Segment):
 
     Time = SET[x]
 
+"""
 #Code to test out changing velocity values
 Batt_Energy_Ave = round(sum(Energy_batt)/len(Energy_batt),6)
 
@@ -268,6 +270,7 @@ for x in range(Num_Segment):
             print(energyTXT.format(Energy_batt[x]))
 
 #End Code to test out changing velocity values
+"""
 
 #Create iterable for csv writing
 EMM_Data.append(Headers)
@@ -275,8 +278,7 @@ for x in range(Num_Segment):
     EMM_Data.append(list((Seg_Dist[x], Velocity[x], SST[x], dT[x], SET[x], Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_elec, Power_batt[x], 
     Energy_batt[x])))
 
-"""
+
 with open('WSC Energy Management Model.csv', mode = 'w', newline = '') as csv_file_write:
     EMM_writer = csv.writer(csv_file_write, delimiter = ',')
     EMM_writer.writerows(EMM_Data)
-"""
