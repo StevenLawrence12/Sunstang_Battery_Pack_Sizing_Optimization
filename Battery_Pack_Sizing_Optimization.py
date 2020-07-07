@@ -151,11 +151,19 @@ SET = []
 
 Seg_Dist = []       #distance for each segment
 Velocity = []       #List of speeds for the differnce race route segments (km/h)
-Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time","Segment End Time", "Array Power", "Aero Power", "Rolling Power", 
+EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time","Segment End Time", "Array Power", "Aero Power", "Rolling Power", 
 "Gravitaional Power", "Parasitic Power", "Battery Power", "Battery Energy Consumption", "Energy Difference"]
 
 Dataset_num = 0     #Counter for the data set number
 Req_Datasets = 10
+
+#Criteria Variables
+DataSet = []
+Vel_Ave = []
+Batt_E_Ave = []
+Batt_E_Err = []
+DCE_Headers = ["Dataset", "Velocity Average (km/h)", "Battery Energy Comsumption Average (kWh)", "Battery Energy Consumption Error Total"]
+DCE_Data = []
 
 #Open the race route data and read in geographic data (latitude, longitude, altitude)
 with open('WSC Route Data.csv') as csv_file:
@@ -206,7 +214,7 @@ for x in range(Num_Segment):
         del_Batt_E.append(abs(Batt_Energy_Ave-Energy_batt[x]))
 
 #Create iterable for csv writing
-EMM_Data.append(Headers)
+EMM_Data.append(EMM_Headers)
 for x in range(Num_Segment):
     EMM_Data.append(list((Seg_Dist[x], Velocity[x], SST[x], dT[x], SET[x], Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_elec, Power_batt[x], 
     Energy_batt[x], del_Batt_E[x])))
@@ -284,7 +292,9 @@ for x in range(Num_Segment):
 
 #Code to change power values for each new data set
 
+
 while Dataset_num != Req_Datasets:
+    DataSet.append(Dataset_num)
     Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
     for x in range(Num_Segment): 
         Velocity[x] = random.randrange(25,88)
@@ -310,21 +320,26 @@ while Dataset_num != Req_Datasets:
         Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
 
         Time = SET[x]
-    Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
-    Batt_E_Ave_Txt = "Average Battery Energy Consumption for Dataset {} is: {}"
-    print(Batt_E_Ave_Txt.format(Dataset_num, Batt_Energy_Ave))
 
-    Vel_Ave = sum(Velocity)/len(Energy_batt)
-    Vel_Ave_Txt = "Average Velocity for Dataset {} is: {}"
-    print(Vel_Ave_Txt.format(Dataset_num, Vel_Ave))
+    Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
+    #Batt_E_Ave_Txt = "Average Battery Energy Consumption for Dataset {} is: {}"
+    #print(Batt_E_Ave_Txt.format(Dataset_num, Batt_Energy_Ave))
+    Batt_E_Ave.append(Batt_Energy_Ave)
+
+    Vel_Ave.append(sum(Velocity)/len(Energy_batt))
+    #Vel_Ave_Txt = "Average Velocity for Dataset {} is: {}"
+    #print(Vel_Ave_Txt.format(Dataset_num, Vel_Ave))
+    
 
     for x in range(Num_Segment):
         del_Batt_E[x] = abs(Batt_Energy_Ave-Energy_batt[x])
         Batt_E_err += del_Batt_E[x]
     
-    Batt_E_err_Txt = "Total Battery Error for Dataset {} is: {}"
-    print(Batt_E_err_Txt.format(Dataset_num, Batt_E_err))
+    Batt_E_Err.append(Batt_E_err)
+    #Batt_E_err_Txt = "Total Battery Error for Dataset {} is: {}"
+    #print(Batt_E_err_Txt.format(Dataset_num, Batt_E_err))
     Batt_E_err = 0
+
 #End of code to change power values for each new data set
     #Create iterable for csv writing
     for x in range(Num_Segment):
@@ -338,3 +353,11 @@ while Dataset_num != Req_Datasets:
 
     Dataset_num += 1
     
+
+DCE_Data.append(DCE_Headers)
+for x in range(len(DataSet)):
+    DCE_Data.append(list((DataSet[x], Vel_Ave[x], Batt_E_Ave[x], Batt_E_Err[x])))
+
+with open("Dataset Critera Evalulation.csv", mode = 'w', newline = '') as csv_file_write:
+    DCE_writer = csv.writer(csv_file_write, delimiter = ',')
+    DCE_writer.writerows(DCE_Data)
