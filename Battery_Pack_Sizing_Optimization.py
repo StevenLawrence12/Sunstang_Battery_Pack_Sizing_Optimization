@@ -32,8 +32,8 @@ def Haversine(lat1, lat2, long1, long2, r):
 def delta_T(speed,distance):
     return datetime.timedelta(hours =distance/speed)
 
-def Batt_Power(Pdrag,Prr,Pg,Parr,MotorEff,Pelec):
-    return ((Pdrag+Prr+Pg)/MotorEff)+Pelec-Parr
+def Batt_Power(Pdrag,Prr,Pg,Pk,Parr,MotorEff,Pelec):
+    return ((Pdrag+Prr+Pg+Pk)/MotorEff)+Pelec-Parr
 
 def Energy(Power, Time):
     return Power*Time/1000
@@ -103,6 +103,15 @@ def sunrise(latitude, longitude, timezone, date):
 def conv_to_DT(H, M, S, MS):    #Convert time to military decimal time
     return H+(M/60)+(S/3600)+(MS/3600000000)
 
+def Kine_Power(V_now, V_past, Dist, M, Time): 
+    if Time.hour == 9 and Time.minute == 0 and Time.second == 0 and Time.microsecond == 0:
+        V_past = 0
+    return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
+
+#Data sets
+Route_Data_csv = input("Which competition route dataset would you like to input?")
+print(Route_Data_csv)
+
 #Vehicle Specifications
 A = 2.38                                    #Frontal area of solar car
 Cd = 0.19                                   #Drag Coefficient of solar car
@@ -151,11 +160,11 @@ SET = []
 
 Seg_Dist = []       #distance for each segment
 Velocity = []       #List of speeds for the differnce race route segments (km/h)
-EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time","Segment End Time", "Array Power", "Aero Power", "Rolling Power", 
-"Gravitaional Power", "Parasitic Power", "Battery Power", "Battery Energy Consumption", "Energy Difference"]
+EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)", 
+"Gravitaional Power (W)","Kinetic Power (W)", "Parasitic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)", "Energy Difference"]
 
 Dataset_num = 0     #Counter for the data set number
-Req_Datasets = 10
+Req_Datasets = int(input("How many datasets do you need? "))
 
 #Criteria Variables
 DataSet = []
@@ -166,7 +175,7 @@ DCE_Headers = ["Dataset", "Velocity Average (km/h)", "Battery Energy Comsumption
 DCE_Data = []
 
 #Open the race route data and read in geographic data (latitude, longitude, altitude)
-with open('WSC Route Data.csv') as csv_file:
+with open(Route_Data_csv) as csv_file:
     routeReader = csv.reader(csv_file,delimiter = ',')
     lineCount=0
     for row in routeReader:
@@ -205,7 +214,8 @@ for x in range(Num_Segment):
     Power_Drag.append(Aero_Power(A, Cd, p, Velocity[x]))
     Power_Roll.append(Roll_Resist(Crr, Velocity[x], Loaded_Weight))
     Power_Grav.append(Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Altitude[x], Altitude[x+1]))
-    Power_batt.append(Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Array[x], MotEff, Power_elec))
+    Power_Kine.append(Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x]))
+    Power_batt.append(Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec))
     Energy_batt.append(Energy(Power_batt[x], dT[x].total_seconds()/3600))
 
     Time = SET[x]
@@ -316,7 +326,8 @@ while Dataset_num != Req_Datasets:
         Power_Drag[x] = Aero_Power(A, Cd, p, Velocity[x])
         Power_Roll[x] = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
         Power_Grav[x] = Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Altitude[x], Altitude[x+1])
-        Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Array[x], MotEff, Power_elec)
+        Power_Kine[x] = Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x])
+        Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec)
         Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
 
         Time = SET[x]
@@ -343,7 +354,7 @@ while Dataset_num != Req_Datasets:
 #End of code to change power values for each new data set
     #Create iterable for csv writing
     for x in range(Num_Segment):
-        EMM_Data[x+1] = list((Seg_Dist[x], Velocity[x], SST[x], dT[x], SET[x], Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_elec, Power_batt[x], 
+        EMM_Data[x+1] = list((Seg_Dist[x], Velocity[x], SST[x], dT[x], SET[x], Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_elec, Power_batt[x], 
         Energy_batt[x], del_Batt_E[x]))
 
     WSC_EMM_CSV_name = "WSC Energy Management Model({}).csv"
