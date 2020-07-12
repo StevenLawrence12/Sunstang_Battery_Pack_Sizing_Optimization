@@ -1,8 +1,9 @@
 import math
 import csv
 import datetime
-import numpy as np
 import random
+import numpy as np
+import pandas as pd 
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
     return 0.5*p*(V/3.6)**3*A*Cd
@@ -109,7 +110,7 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
 #Data sets
-Route_Data_csv = input("Which competition route dataset would you like to input?")
+Route_Data_csv = input("Which competition route dataset would you like to input? ")
 print(Route_Data_csv)
 
 #Vehicle Specifications
@@ -124,12 +125,6 @@ Max_Array_Power = 1300                      #Max possible power from the solar a
 
 #Possible Changing Variables
 p = 1.17    #density of air
-
-#Geographic Variables
-Latitude = []       #Latitude of all points along the race route (deg)
-Longitude = []      #Longitude of all points along the race route (deg)
-Altitude = []       #altitude of all points along the race route (m)
-Route_Data = []     #List of race route geographic data lists
 
 #Power Variables
 Power_Array = []    #Power obtain from the solar array 
@@ -174,46 +169,33 @@ Batt_E_Err = []
 DCE_Headers = ["Dataset", "Velocity Average (km/h)", "Battery Energy Comsumption Average (kWh)", "Battery Energy Consumption Error Total"]
 DCE_Data = []
 
-#Open the race route data and read in geographic data (latitude, longitude, altitude)
-with open(Route_Data_csv) as csv_file:
-    routeReader = csv.reader(csv_file,delimiter = ',')
-    lineCount=0
-    for row in routeReader:
-        if lineCount == 0: #Skips the header 
-            lineCount += 1
-            continue
-        Latitude.append(float(row[0]))
-        Longitude.append(float(row[1]))
-        Altitude.append(float(row[2]))
-        lineCount += 1
+#Read route data csv file
+Route_Data_df = pd.read_csv(Route_Data_csv)
+Num_Segment = len(Route_Data_df)-1 #calculate the number of race route segments
 
-
-Num_Segment = lineCount-2 #calculate the number of race route segments
-
-
-SR = sunrise(Latitude[0], Longitude[0], timezone, Time.date())
+SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
 for x in range(Num_Segment): 
     Velocity.append(random.randrange(25,88))  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1]
 
 #Calculate Powers
 for x in range(Num_Segment):
-    Seg_Dist.append(Haversine(Latitude[x],Latitude[x+1], Longitude[x], Longitude [x+1], 6371))
+    Seg_Dist.append(Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371))
     dT.append(delta_T(Velocity[x],Seg_Dist[x]))
 
 
     End_Time = Time+dT[x]
     if End_Time.hour == 18:
         Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
-        SR = sunrise(Latitude[x], Longitude[x], timezone, Time.date())
+        SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
     Time_list.append(Time)
     SST.append(Time.time())
     SET.append(Time+dT[x])
     
-    Power_Array.append(Array_Power(Time.timetuple().tm_yday,Latitude[x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
+    Power_Array.append(Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
     SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1))
     Power_Drag.append(Aero_Power(A, Cd, p, Velocity[x]))
     Power_Roll.append(Roll_Resist(Crr, Velocity[x], Loaded_Weight))
-    Power_Grav.append(Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Altitude[x], Altitude[x+1]))
+    Power_Grav.append(Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Route_Data_df['altitude'][x], Route_Data_df['altitude'][x+1]))
     Power_Kine.append(Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x]))
     Power_batt.append(Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec))
     Energy_batt.append(Energy(Power_batt[x], dT[x].total_seconds()/3600))
@@ -236,23 +218,23 @@ while Dataset_num != Req_Datasets:
     for x in range(Num_Segment): 
         Velocity[x] = random.randrange(25,88)
     for x in range(Num_Segment):
-        Seg_Dist[x] = Haversine(Latitude[x],Latitude[x+1], Longitude[x], Longitude [x+1], 6371)
+        Seg_Dist[x] = Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371)
         dT[x] = delta_T(Velocity[x],Seg_Dist[x])
 
 
         End_Time = Time+dT[x]
         if End_Time.hour == 18:
             Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
-            SR = sunrise(Latitude[x], Longitude[x], timezone, Time.date())
+            SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
         Time_list[x] = Time
         SST[x] = Time.time()
         SET[x] = Time+dT[x]
     
-        Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Latitude[x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
+        Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
         SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1)
         Power_Drag[x] = Aero_Power(A, Cd, p, Velocity[x])
         Power_Roll[x] = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
-        Power_Grav[x] = Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Altitude[x], Altitude[x+1])
+        Power_Grav[x] = Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Route_Data_df['altitude'][x], Route_Data_df['altitude'][x+1])
         Power_Kine[x] = Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x])
         Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec)
         Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
