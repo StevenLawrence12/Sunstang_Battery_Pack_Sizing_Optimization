@@ -137,7 +137,6 @@ Power_batt = []     #Power requirement from batteries
 #Energy Variables
 Energy_batt = []    #Battery energy requirement
 del_Batt_E = []
-Batt_E_err = 0
 
 #Date & Time Variables
 Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
@@ -159,32 +158,11 @@ EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start 
 Dataset_num = 0     #Counter for the data set number
 Req_Datasets = int(input("How many datasets do you need? "))
 
-#Criteria Variables
-
-<<<<<<< HEAD
-#Open the race route data and read in geographic data (latitude, longitude, altitude)
-with open(Route_Data_csv) as csv_file:
-    routeReader = csv.reader(csv_file,delimiter = ',')
-    lineCount=0
-    for row in routeReader:
-        if lineCount == 0: #Skips the header 
-            lineCount += 1
-            continue
-        Latitude.append(float(row[0]))
-        Longitude.append(float(row[1]))
-        Altitude.append(float(row[2]))
-        lineCount += 1
-
-Num_Segment = lineCount-2 #calculate the number of race route segments
-
-SR = sunrise(Latitude[0], Longitude[0], timezone, Time.date())
-=======
 #Read route data csv file
 Route_Data_df = pd.read_csv(Route_Data_csv)     #Load in route data to a dataframe
 Num_Segment = len(Route_Data_df)-1 #calculate the number of race route segments
 
 SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
->>>>>>> csvToPandas
 for x in range(Num_Segment): 
     Velocity.append(random.randrange(25,88))  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1]
 
@@ -218,6 +196,7 @@ for x in range(Num_Segment):
 
 #Code to change power values for each new data set
 while Dataset_num != Req_Datasets:
+    DataSet.append(Dataset_num)
     Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
     for x in range(Num_Segment): 
         Velocity[x] = random.randrange(25,88)
@@ -244,38 +223,10 @@ while Dataset_num != Req_Datasets:
         Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
 
         Time = SET[x]
-<<<<<<< HEAD
-#End of code to change power values for each new data set
-
-    #Create iterable for csv writing
-    for x in range(Num_Segment):
-        EMM_Data[x+1] = list((Seg_Dist[x], Velocity[x], SST[x].strftime("%H:%M:%S%f"), dT[x].total_seconds(), SET[x].strftime("%H:%M:%S%f"), Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_elec, Power_batt[x], 
-        Energy_batt[x], del_Batt_E[x]))
-=======
         SST[x] = SST[x].strftime("%H:%M:%S:%f")
         dT[x] = dT[x].total_seconds()
         SET[x] = SET[x].strftime("%H:%M:%S:%f")
-
-    Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
-    #Batt_E_Ave_Txt = "Average Battery Energy Consumption for Dataset {} is: {}"
-    #print(Batt_E_Ave_Txt.format(Dataset_num, Batt_Energy_Ave))
-    Batt_E_Ave.append(Batt_Energy_Ave)
-
-    Vel_Ave.append(sum(Velocity)/len(Energy_batt))
-    #Vel_Ave_Txt = "Average Velocity for Dataset {} is: {}"
-    #print(Vel_Ave_Txt.format(Dataset_num, Vel_Ave))
-    
-
-    for x in range(Num_Segment):
-        del_Batt_E[x] = abs(Batt_Energy_Ave-Energy_batt[x])
-        Batt_E_err += del_Batt_E[x]
-    
-    Batt_E_Err.append(Batt_E_err)
-    #Batt_E_err_Txt = "Total Battery Error for Dataset {} is: {}"
-    #print(Batt_E_err_Txt.format(Dataset_num, Batt_E_err))
-    Batt_E_err = 0
 #End of code to change power values for each new data set
->>>>>>> csvToPandas
 
     EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt, 
     Energy_batt, del_Batt_E)), columns = EMM_Headers)           #Creating dataframe to export to csv file
@@ -283,20 +234,4 @@ while Dataset_num != Req_Datasets:
 
     EMM_Data_df.to_csv(f"WSC Energy Management Model({Dataset_num}).csv",index=False)       #Export EMM data to csv file
 
-<<<<<<< HEAD
     Dataset_num += 1
-=======
-    Dataset_num += 1
-    
-
-
-DCE_Data.append(DCE_Headers)
-for x in range(len(DataSet)):
-    DCE_Data.append(list((DataSet[x], Vel_Ave[x], Batt_E_Ave[x], Batt_E_Err[x])))
-
-"""
-with open("Dataset Critera Evalulation.csv", mode = 'w', newline = '') as csv_file_write:
-    DCE_writer = csv.writer(csv_file_write, delimiter = ',')
-    DCE_writer.writerows(DCE_Data)
-"""
->>>>>>> csvToPandas
