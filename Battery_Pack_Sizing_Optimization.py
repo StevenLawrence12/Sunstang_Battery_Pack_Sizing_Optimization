@@ -196,7 +196,6 @@ for x in range(Num_Segment):
 
 #Code to change power values for each new data set
 while Dataset_num != Req_Datasets:
-    DataSet.append(Dataset_num)
     Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
     for x in range(Num_Segment): 
         Velocity[x] = random.randrange(25,88)
