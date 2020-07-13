@@ -1,5 +1,4 @@
 import math
-import csv
 import datetime
 import random
 import numpy as np
@@ -139,7 +138,6 @@ Power_batt = []     #Power requirement from batteries
 Energy_batt = []    #Battery energy requirement
 del_Batt_E = []
 Batt_E_err = 0
-EMM_Data = []
 
 #Date & Time Variables
 Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
@@ -156,7 +154,7 @@ SET = []
 Seg_Dist = []       #distance for each segment
 Velocity = []       #List of speeds for the differnce race route segments (km/h)
 EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)", 
-"Gravitaional Power (W)","Kinetic Power (W)", "Parasitic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)", "Energy Difference"]
+"Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)", "Energy Difference"]
 
 Dataset_num = 0     #Counter for the data set number
 Req_Datasets = int(input("How many datasets do you need? "))
@@ -170,7 +168,7 @@ DCE_Headers = ["Dataset", "Velocity Average (km/h)", "Battery Energy Comsumption
 DCE_Data = []
 
 #Read route data csv file
-Route_Data_df = pd.read_csv(Route_Data_csv)
+Route_Data_df = pd.read_csv(Route_Data_csv)     #Load in route data to a dataframe
 Num_Segment = len(Route_Data_df)-1 #calculate the number of race route segments
 
 SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
@@ -205,12 +203,6 @@ Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
 for x in range(Num_Segment):
         del_Batt_E.append(abs(Batt_Energy_Ave-Energy_batt[x]))
 
-#Create iterable for csv writing
-EMM_Data.append(EMM_Headers)
-for x in range(Num_Segment):
-    EMM_Data.append(list((Seg_Dist[x], Velocity[x], SST[x], dT[x], SET[x], Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_elec, Power_batt[x], 
-    Energy_batt[x], del_Batt_E[x])))
-
 #Code to change power values for each new data set
 while Dataset_num != Req_Datasets:
     DataSet.append(Dataset_num)
@@ -227,7 +219,7 @@ while Dataset_num != Req_Datasets:
             Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
             SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
         Time_list[x] = Time
-        SST[x] = Time.time()
+        SST[x] = Time
         SET[x] = Time+dT[x]
     
         Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
@@ -240,6 +232,9 @@ while Dataset_num != Req_Datasets:
         Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
 
         Time = SET[x]
+        SST[x] = SST[x].strftime("%H:%M:%S:%f")
+        dT[x] = dT[x].total_seconds()
+        SET[x] = SET[x].strftime("%H:%M:%S:%f")
 
     Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
     #Batt_E_Ave_Txt = "Average Battery Energy Consumption for Dataset {} is: {}"
@@ -259,20 +254,17 @@ while Dataset_num != Req_Datasets:
     #Batt_E_err_Txt = "Total Battery Error for Dataset {} is: {}"
     #print(Batt_E_err_Txt.format(Dataset_num, Batt_E_err))
     Batt_E_err = 0
-
 #End of code to change power values for each new data set
-    #Create iterable for csv writing
-    for x in range(Num_Segment):
-        EMM_Data[x+1] = list((Seg_Dist[x], Velocity[x], SST[x].strftime("%H:%M:%S%f"), dT[x].total_seconds(), SET[x].strftime("%H:%M:%S%f"), Power_Array[x], Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_elec, Power_batt[x], 
-        Energy_batt[x], del_Batt_E[x]))
 
-    WSC_EMM_CSV_name = "WSC Energy Management Model({}).csv"
-    with open(WSC_EMM_CSV_name.format(Dataset_num), mode = 'w', newline = '') as csv_file_write:
-        EMM_writer = csv.writer(csv_file_write, delimiter = ',')
-        EMM_writer.writerows(EMM_Data)
+    EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt, 
+    Energy_batt, del_Batt_E)), columns = EMM_Headers)           #Creating dataframe to export to csv file
+    EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
+
+    EMM_Data_df.to_csv(f"WSC Energy Management Model({Dataset_num}).csv",index=False)       #Export EMM data to csv file
 
     Dataset_num += 1
     
+
 
 DCE_Data.append(DCE_Headers)
 for x in range(len(DataSet)):
