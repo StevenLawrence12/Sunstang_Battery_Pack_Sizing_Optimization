@@ -138,12 +138,10 @@ def Generate_Data(Route_Data_csv):
     #Date & Time Variables
     Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
     Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
-    Time_list=[]
     Date = Time.date()                                      #create date object from Time
     timezone = 9.5                                          #Timezone of the race, will eventually be read in from a csv file
     SR = 0                                                  #Sunrise time
     dT = []
-    deci_time = []
     SST = []
     SET = []
     
@@ -157,9 +155,10 @@ def Generate_Data(Route_Data_csv):
     
     #Read route data csv file
     Route_Data_df = pd.read_csv(Route_Data_csv)     #Load in route data to a dataframe
-    Num_Segment = len(Route_Data_df)-1 #calculate the number of race route segments
     
+
     Vel_df = pd.read_csv(Output_path + "\Inital_Velocities.csv")
+    Num_Segment = Vel_df.shape[0] #calculate the number of race route segments
 
     SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
     for x in range(Num_Segment): 
@@ -175,7 +174,6 @@ def Generate_Data(Route_Data_csv):
         if End_Time.hour == 18:
             Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
             SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
-        Time_list.append(Time)
         SST.append(Time.time())
         SET.append(Time+dT[x])
         
@@ -189,7 +187,6 @@ def Generate_Data(Route_Data_csv):
         Energy_batt.append(Energy(Power_batt[x], dT[x].total_seconds()/3600))
     
         Time = SET[x]
-    Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
     
     #Code to change power values for each new data set
     while Dataset_num != Req_Datasets:
@@ -204,7 +201,6 @@ def Generate_Data(Route_Data_csv):
             if End_Time.hour == 18:
                 Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
                 SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
-            Time_list[x] = Time
             SST[x] = Time
             SET[x] = Time+dT[x]
         
@@ -232,6 +228,7 @@ def Generate_Data(Route_Data_csv):
         Dataset_num += 1
         
  #Data sets
+
 Output_path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
 Route_Data_csv = input("Which competition route dataset would you like to input? ")
 Generate_Data(Route_Data_csv)
