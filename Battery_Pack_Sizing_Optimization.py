@@ -111,7 +111,6 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
 #Data sets
 Output_path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
 Route_Data_csv = input("Which competition route dataset would you like to input? ")
-print(Route_Data_csv)
 
 #Vehicle Specifications
 A = 2.38                                    #Frontal area of solar car
@@ -161,6 +160,9 @@ Req_Datasets = int(input("How many datasets do you need? "))
 #Read route data csv file
 Route_Data_df = pd.read_csv(Route_Data_csv)     #Load in route data to a dataframe
 Num_Segment = len(Route_Data_df)-1 #calculate the number of race route segments
+
+Vel_df = pd.read_csv(Output_path + "\Inital_Velocities.csv")
+print(Vel_df)
 
 SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
 for x in range(Num_Segment): 
