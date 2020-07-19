@@ -109,6 +109,7 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
 #Data sets
+Output_path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
 Route_Data_csv = input("Which competition route dataset would you like to input? ")
 print(Route_Data_csv)
 
@@ -116,10 +117,10 @@ print(Route_Data_csv)
 A = 2.38                                    #Frontal area of solar car
 Cd = 0.19                                   #Drag Coefficient of solar car
 Crr = 0.0055                                #Rolling Resistance coefficient
-Car_Mass = 300                              #Mass of solar car without passengers
-Num_Passengers = 5                          #Number of passengers in solar car
+Car_Mass = 375                              #Mass of solar car without passengers
+Num_Passengers = 6                          #Number of passengers in solar car
 Loaded_Weight = Car_Mass+Num_Passengers*80  #Mass of solar car with passengers
-MotEff = 0.98                               #Efficiency of the motor
+MotEff = 0.80                               #Efficiency of the motor
 Max_Array_Power = 1300                      #Max possible power from the solar array
 
 #Possible Changing Variables
@@ -136,7 +137,6 @@ Power_batt = []     #Power requirement from batteries
 
 #Energy Variables
 Energy_batt = []    #Battery energy requirement
-del_Batt_E = []
 
 #Date & Time Variables
 Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
@@ -153,7 +153,7 @@ SET = []
 Seg_Dist = []       #distance for each segment
 Velocity = []       #List of speeds for the differnce race route segments (km/h)
 EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)", 
-"Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)", "Energy Difference"]
+"Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)"]
 
 Dataset_num = 0     #Counter for the data set number
 Req_Datasets = int(input("How many datasets do you need? "))
@@ -191,18 +191,15 @@ for x in range(Num_Segment):
 
     Time = SET[x]
 Batt_Energy_Ave = sum(Energy_batt)/len(Energy_batt)
-for x in range(Num_Segment):
-        del_Batt_E.append(abs(Batt_Energy_Ave-Energy_batt[x]))
 
 #Code to change power values for each new data set
 while Dataset_num != Req_Datasets:
     Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
     for x in range(Num_Segment): 
-        Velocity[x] = random.randrange(25,88)
+        Velocity[x] = random.randrange(25,120)
     for x in range(Num_Segment):
         Seg_Dist[x] = Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371)
         dT[x] = delta_T(Velocity[x],Seg_Dist[x])
-
 
         End_Time = Time+dT[x]
         if End_Time.hour == 18:
@@ -228,9 +225,9 @@ while Dataset_num != Req_Datasets:
 #End of code to change power values for each new data set
 
     EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt, 
-    Energy_batt, del_Batt_E)), columns = EMM_Headers)           #Creating dataframe to export to csv file
+    Energy_batt)), columns = EMM_Headers)           #Creating dataframe to export to csv file
     EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
 
-    EMM_Data_df.to_csv(f"WSC Energy Management Model({Dataset_num}).csv",index=False)       #Export EMM data to csv file
+    EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({Dataset_num}).csv',index=False)       #Export EMM data to csv file
 
     Dataset_num += 1
