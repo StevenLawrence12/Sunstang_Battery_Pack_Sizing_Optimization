@@ -11,11 +11,12 @@ def Target_Speed_Derate(V):     #V = km/h
         T = 0.4**(35-V)
     else:
         T = 1
+
     return T
 
 #Prepare to read multiple csv files
-path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code'
-filenames = glob.glob(path + "/WSC Energy*.csv")
+path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
+filenames = glob.glob(path + "\WSC Energy*.csv")
 
 dfs = [pd.read_csv(f) for f in filenames] #reading all the csv energy management model files
 
@@ -27,4 +28,4 @@ for x in range(len(filenames)): #Calculating all the genotype values for each da
     ASC_Scoring(Target_Speed_Derate(dfs[x]['Segment Velocity (km/h)'].mean()), dfs[x]['Battery Energy Consumption (kWh)'].sum(), 5*dfs[x]['Segment Distance (km)'].sum())]], axis = 0)
 
 Genotype_df = pd.DataFrame(Genotype_array, columns = Headers[0,:]) #converting the numpy array to a pandas dataframe
-Genotype_df.to_csv('Generation Genotypes.csv', index = False)       #export the dataframe to a csv file
+Genotype_df.to_csv(r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data\Generation Genotypes.csv', index = False)       #export the dataframe to a csv file
