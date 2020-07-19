@@ -116,6 +116,9 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
         V_past = 0
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
+def Kine_Power_np(V_now, V_past, Dist, M): 
+    return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
+
 def Generate_Data(Route_Data_csv):
     #Vehicle Specifications
     A = 2.38                                    #Frontal area of solar car
@@ -175,7 +178,7 @@ def Generate_Data(Route_Data_csv):
 
 
     Num_Segment = Vel_df.shape[0] #calculate the number of race route segments
-    print(Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1))
+    #print(Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1))
 
 
     SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
@@ -204,20 +207,41 @@ def Generate_Data(Route_Data_csv):
         Energy_batt.append(Energy(Power_batt[x], dT[x].total_seconds()/3600))
     
         Time = SET[x]
+
+
+
+
+
+    #==========================================START NUMPY==========================================
     
     Seg_Dist_arr = np.tile(np.reshape(np.asarray(Seg_Dist),(Num_Segment,1)),Req_Datasets)
 
-    #--------------START NUMPY--------------------
-    
-    dT_arr = Vel_arr/Seg_Dist_arr*3600
+    dT_arr = Seg_Dist_arr/Vel_arr*3600
+
+    # time_arr = np.cumsum(dT_arr, axis = 0)
+    # #time_arr = np.split(time_arr, Req_Datasets, axis = 1)
+    # #print(time_arr.shape)
+    # time_arr = np.where(time_arr<32400,time_arr,time_arr-32400)
+
     Ap_arr = Aero_Power(A, Cd, p, Vel_arr)
     Rr_arr = Roll_Resist(Crr, Vel_arr, Loaded_Weight)
     Gp_arr = Grav_Power_np(Vel_arr, Loaded_Weight, Seg_Dist_arr, Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1), Route_Data_arr[1:Route_Data_arr.shape[0],2].reshape(Num_Segment,1))
-    print(Vel_arr[0][0])
-    print(Seg_Dist_arr[0][0])
-    print(Gp_arr[0][0])
+    #print(np.zeros((1,Req_Datasets)).shape)
 
+    pVel_arr = np.concatenate((np.zeros((1,Req_Datasets)),Vel_arr[:-1,:]))
+    print(pVel_arr.shape)
+    Kp_arr = Kine_Power_np(Vel_arr, pVel_arr, Seg_Dist_arr, Loaded_Weight)
+    # print(Vel_arr[0][0])
+    print(Seg_Dist_arr[1][0])
+
+    test_df = pd.DataFrame(Kp_arr)
+    print(test_df)
+    test_df.to_csv(Output_path + "\Testing.csv")
     #---------------END NUMPY---------------------
+
+
+
+
 
     #Code to change power values for each new data set
     while Dataset_num != Req_Datasets:
