@@ -6,7 +6,7 @@ import math
 import datetime
 import random
 import numpy as np
-import pandas as pd 
+import pandas as pd
 import os
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
@@ -14,14 +14,14 @@ def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
 
 def Roll_Resist(Crr,V,M): #Calculate the power loss from friction/rolling resistance
     return Crr*(1+V/161)*M*9.81*V/3.6
- 
+
 def Array_Power(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calculate the power gain from the solar array
     SLL = 23.5*math.sin(math.radians((180*(Day-82))/182.5))
     phi_N = Latitude - SLL
     phi = 90 - ((90-phi_N)*math.sin(math.radians(180*(Time-Sunrise)/DayLength)))
     if Driving == True:
         theta = phi
-    
+
     return Pmax*(math.cos(math.radians(phi))**0.3)*math.cos(math.radians(theta))
 
 def Array_Power_np(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calculate the power gain from the solar array
@@ -30,8 +30,19 @@ def Array_Power_np(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Cal
     phi = 90 - ((90-phi_N)*np.sin(np.radians(180*(Time-Sunrise)/DayLength)))
     if Driving == True:
         theta = phi
-    
-    return Pmax*(np.cos(np.radians(phi))**0.3)*np.cos(math.radians(theta))
+
+    return Pmax*(np.cos(np.radians(phi))**0.3)*np.cos(np.radians(theta))
+
+def Array_Power_np(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calculate the power gain from the solar array
+    SLL = 23.5*np.sin(np.radians((180*(Day-82))/182.5))
+    # print(SLL)
+    phi_N = Latitude - SLL
+    # print(phi_N)
+    phi = 90 - ((90-phi_N)*np.sin(np.radians(180*(Time-Sunrise)/DayLength)))
+    if Driving == True:
+        theta = phi
+
+    return Pmax*(np.power(np.cos(np.radians(phi)),0.3)*np.cos(np.radians(theta)))
 
 def Grav_Power(V,M,d,alt1,alt2): #Calculate the power loss due to gravitatational effects
     return V*M*9.81*math.sin(math.atan((alt2-alt1)/1000/d))/3.6
@@ -57,7 +68,7 @@ def Energy(Power, Time):
 
 def date_to_jd(year,month,day):
     # Convert a date to Julian Day.
-    # Algorithm from 'Practical Astronomy with your Calculator or Spreadsheet', 
+    # Algorithm from 'Practical Astronomy with your Calculator or Spreadsheet',
     # 4th ed., Duffet-Smith and Zwart, 2011.
     # This function extracted from https://gist.github.com/jiffyclub/1294443
     if month == 1 or month == 2:
@@ -84,12 +95,12 @@ def date_to_jd(year,month,day):
         C = math.trunc(365.25 * yearp)
     D = math.trunc(30.6001 * (monthp + 1))
     jd = B + C + D + day + 1720994.5
-    return jd    
+    return jd
 
 def sunrise(latitude, longitude, timezone, date):
     latitude = math.radians(latitude)
     longitude = math.radians(longitude)
-    
+
     #constants
     jd2000 = 2451545 #the julian date for Jan 1 2000 at noon
     earth_tilt = math.radians(23.44)
@@ -113,19 +124,56 @@ def sunrise(latitude, longitude, timezone, date):
     numdays_set = Jset - jd2000+0.5 +timezone/24
     sunrise = datetime.datetime(2000, 1, 1) + datetime.timedelta(numdays_rise)
     sunset = datetime.datetime(2000, 1, 1) + datetime.timedelta(numdays_set)
-    global DL 
+    global DL
     DL = sunset-sunrise
     return sunrise
+
+def sunrise_np(latitude, longitude, timezone, year, month, day):
+    latitude = np.radians(latitude)
+    longitude = np.radians(longitude)
+
+    #constants
+    jd2000 = 2451545 #the julian date for Jan 1 2000 at noon
+    earth_tilt = np.radians(23.44)
+    sun_disc = np.radians(-0.83)
+
+    #equations
+    jd_now = date_to_jd(year,month,day) #current julian date
+    n = jd_now - jd2000 + 0.0008 #Current julian day
+    jstar = n - np.degrees(longitude)/360 #Mean solar noon
+    M = np.radians(np.fmod(357.5291 + 0.98560028 * jstar,360)) #Solar mean anomaly - degrees
+    C = 1.9148 * np.sin(M) + 0.0200 * np.sin(2*M) + 0.0003 * np.sin(3*M) #Equation of the center
+    lamda = np.radians(np.fmod(np.degrees(M) + C + 180 + 102.9372,360)) #Eliptic longitude - degrees
+    Jtransit = 2451545.5 + jstar + 0.0053 * np.sin(M) - 0.0069 * np.sin(2*lamda) #Solar transit
+    angle_delta = np.arcsin(np.sin(lamda) * np.sin(earth_tilt)) #Deinclination of the sun
+    omega = np.arccos((np.sin(sun_disc) - np.sin(latitude) * np.sin(angle_delta))/(np.cos(latitude) * np.cos(angle_delta))) #Hour angle
+
+    Jrise = Jtransit - np.degrees(omega)/360
+    Jset = Jtransit + np.degrees(omega)/360
+
+    numdays_rise = Jrise - jd2000 +0.5 +timezone/24
+    numdays_set = Jset - jd2000+0.5 +timezone/24
+
+    sunrise = np.empty_like(numdays_rise)
+    sunset = np.empty_like(numdays_rise)
+    for x in range(numdays_rise.shape[0]):
+        for y in range(numdays_rise.shape[1]):
+            SR = datetime.datetime(2000, 1, 1) + datetime.timedelta(numdays_rise[x,y])
+            SS = datetime.datetime(2000, 1, 1) + datetime.timedelta(numdays_set[x,y])
+            sunrise[x,y] = (SR.hour*3600)+(SR.minute*60)+SR.second+(SR.microsecond/1000000)
+            sunset[x,y] = (SS.hour*3600)+(SS.minute*60)+SS.second+(SS.microsecond/1000000)
+
+    return sunrise, sunset
 
 def conv_to_DT(H, M, S, MS):    #Convert time to military decimal time
     return H+(M/60)+(S/3600)+(MS/3600000000)
 
-def Kine_Power(V_now, V_past, Dist, M, Time): 
+def Kine_Power(V_now, V_past, Dist, M, Time):
     if Time.hour == 9 and Time.minute == 0 and Time.second == 0 and Time.microsecond == 0:
         V_past = 0
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
-def Kine_Power_np(V_now, V_past, Dist, M): 
+def Kine_Power_np(V_now, V_past, Dist, M):
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
 def Generate_Data(Route_Data_csv):
@@ -138,22 +186,22 @@ def Generate_Data(Route_Data_csv):
     Loaded_Weight = Car_Mass+Num_Passengers*80  #Mass of solar car with passengers
     MotEff = 0.80                               #Efficiency of the motor
     Max_Array_Power = 1300                      #Max possible power from the solar array
-    
+
     #Possible Changing Variables
     p = 1.17    #density of air
-    
+
     #Power Variables
-    Power_Array = []    #Power obtain from the solar array 
+    Power_Array = []    #Power obtain from the solar array
     Power_Drag = []     #Power consumed from aerodynamic drag
     Power_Roll = []     #Power consumed from rolling resistance/friction
     Power_Grav = []     #Power fron gravitational forces
     Power_Kine = []     #Power from kinetic forces
     Power_elec = 50   #Power consumed from all electronics in the solar car
     Power_batt = []     #Power requirement from batteries
-    
+
     #Energy Variables
     Energy_batt = []    #Battery energy requirement
-    
+
     #Date & Time Variables
     Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
     Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
@@ -163,12 +211,12 @@ def Generate_Data(Route_Data_csv):
     dT = []
     SST = []
     SET = []
-    
+
     Seg_Dist = []       #distance for each segment
     Velocity = []       #List of speeds for the differnce race route segments (km/h)
-    EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)", 
+    EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)",
     "Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)"]
-    
+
     Dataset_num = 0     #Counter for the data set number
     # Req_Datasets = int(input("How many datasets do you need? "))
     Req_Datasets = 10
@@ -183,7 +231,7 @@ def Generate_Data(Route_Data_csv):
 
     Vel_df = pd.read_csv(Output_path + "\Inital_Velocities.csv")
     Vel_arr = Vel_df.to_numpy()
-    
+
 
 
     Num_Segment = Vel_df.shape[0] #calculate the number of race route segments
@@ -191,21 +239,21 @@ def Generate_Data(Route_Data_csv):
 
 
     SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
-    for x in range(Num_Segment): 
+    for x in range(Num_Segment):
         Velocity.append(random.randrange(25,88))  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1]
     #Calculate Powers
     for x in range(Num_Segment):
         Seg_Dist.append(Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371))
         dT.append(delta_T(Velocity[x],Seg_Dist[x]))
 
-    
+
         End_Time = Time+dT[x]
         if End_Time.hour == 18:
             Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
             SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
         SST.append(Time.time())
         SET.append(Time+dT[x])
-        
+
         Power_Array.append(Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
         SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1))
         Power_Drag.append(Aero_Power(A, Cd, p, Velocity[x]))
@@ -214,12 +262,12 @@ def Generate_Data(Route_Data_csv):
         Power_Kine.append(Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x]))
         Power_batt.append(Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec))
         Energy_batt.append(Energy(Power_batt[x], dT[x].total_seconds()/3600))
-    
+
         Time = SET[x]
 
 
     #==========================================START NUMPY==========================================
-    
+
     Seg_Dist_arr = np.tile(np.reshape(np.asarray(Seg_Dist),(Num_Segment,1)),Req_Datasets)
 
     dT_arr = Seg_Dist_arr/Vel_arr*3600
@@ -234,22 +282,26 @@ def Generate_Data(Route_Data_csv):
     #         End_T = SST_arr[x,y] + dT_arr[x,y]
     #         if End_T > 64800:
     #             T = Start_Time
-    #         SST_arr[x+1,y] = 
+    #         SST_arr[x+1,y] =
 
 
+    date_day_arr = np.full((Num_Segment, Req_Datasets),datetime.datetime.fromisoformat(Start_Day).date().day, dtype='float64')
 
-    
     time_arr = np.cumsum(dT_arr, axis = 0)
     SET_arr = time_arr*(time_arr<32400)
     temp_time_arr = time_arr
-    print(int(np.amax(time_arr//32400)))
+    Day_arr = np.zeros((Num_Segment, Req_Datasets))
     for x in range(int(np.amax(time_arr//32400))):
-        
+        Day_arr = Day_arr + np.multiply(temp_time_arr>32400,1)
         temp_dT_arr = dT_arr*(temp_time_arr>32400)
         temp_time_arr = np.cumsum(temp_dT_arr,axis = 0)
         SET_arr = SET_arr+(temp_time_arr*(temp_time_arr<32400))
-
+    date_day_arr += Day_arr
+    Day_arr += datetime.datetime.fromisoformat(Start_Day).timetuple().tm_yday
+    SET_arr += 32400
     SST_arr = SET_arr-dT_arr
+    # print(SET_arr)
+
     # print(time_arr>32400)
     # # time_arr = np.split(time_arr, Req_Datasets, axis = 1)
     # # print(time_arr.shape)
@@ -263,28 +315,34 @@ def Generate_Data(Route_Data_csv):
 
     # d1_2_time_sum = d1_time_sum+d2_time_sum
 
-    # print(rows[0])    
+    # print(rows[0])
     # print(cols[0])
-  
+
     Ap_arr = Aero_Power(A, Cd, p, Vel_arr)
     Rr_arr = Roll_Resist(Crr, Vel_arr, Loaded_Weight)
     Gp_arr = Grav_Power_np(Vel_arr, Loaded_Weight, Seg_Dist_arr, Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1), Route_Data_arr[1:Route_Data_arr.shape[0],2].reshape(Num_Segment,1))
-    #print(np.zeros((1,Req_Datasets)).shape)
+    Sr_arr, Ss_arr = sunrise_np(Route_Data_arr[0:Num_Segment,0].reshape(Num_Segment,1), Route_Data_arr[0:Num_Segment,1].reshape(Num_Segment,1), timezone, datetime.datetime.fromisoformat(Start_Day).date().year, datetime.datetime.fromisoformat(Start_Day).date().month, date_day_arr)
+    Dl_arr = Ss_arr - Sr_arr
+    Ar_arr = Array_Power_np(Day_arr,Route_Data_arr[0:Num_Segment,0].reshape(Num_Segment,1), SST_arr/3600, Sr_arr/3600, Dl_arr/3600, Max_Array_Power, True)
+
+    # print(np.zeros((1,Req_Datasets)).shape)
 
     pVel_arr = np.concatenate((np.zeros((1,Req_Datasets)),Vel_arr[:-1,:]))
     #print(pVel_arr.shape)
     Kp_arr = Kine_Power_np(Vel_arr, pVel_arr, Seg_Dist_arr, Loaded_Weight)
+    Bp_arr = Batt_Power(Ap_arr, Rr_arr, Gp_arr, Kp_arr, Ar_arr, MotEff, Power_elec)
+    BE_arr = Energy(Bp_arr, dT_arr/3600)
     # print(Vel_arr[0][0])
     #print(Seg_Dist_arr[1][0])
 
     #print(dT_arr[:,0].shape)
     test_arr = np.concatenate((dT_arr[:,0].reshape(Num_Segment,1),time_arr[:,0].reshape(Num_Segment,1)),axis = 1)
-    test_df = pd.DataFrame(SET_arr)
-    # test2_df = pd.DataFrame(d1_2_time_sum)
-    # test3_df = pd.DataFrame(np.cumsum(dT_arr*time_check_arr,axis = 0))
+    test_df = pd.DataFrame(Bp_arr)
+    test2_df = pd.DataFrame(BE_arr)
+    # test3_df = pd.DataFrame(Dl_arr/3600)
 
     test_df.to_csv(Output_path + "\Testing.csv")
-    # test2_df.to_csv(Output_path + "\Testing2.csv")
+    test2_df.to_csv(Output_path + "\Testing2.csv")
     # test3_df.to_csv(Output_path + "\Testing3.csv")
     #---------------END NUMPY---------------------
 
@@ -295,19 +353,19 @@ def Generate_Data(Route_Data_csv):
     #Code to change power values for each new data set
     while Dataset_num != Req_Datasets:
         Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
-        for x in range(Num_Segment): 
+        for x in range(Num_Segment):
             Velocity[x] = random.randrange(25,120)
         for x in range(Num_Segment):
             # dT[x] = delta_T(Vel_arr[x][Dataset_num],Seg_Dist[x])
             dT[x] = delta_T(Velocity[x],Seg_Dist[x])
-    
+
             End_Time = Time+dT[x]
             if End_Time.hour == 18:
                 Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
                 SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
             SST[x] = Time
             SET[x] = Time+dT[x]
-        
+
             Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
             SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1)
             # Power_Drag[x] = Aero_Power(A, Cd, p, Vel_arr[x][Dataset_num])
@@ -321,21 +379,21 @@ def Generate_Data(Route_Data_csv):
 
             Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec)
             Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
-    
+
             Time = SET[x]
             SST[x] = SST[x].strftime("%H:%M:%S:%f")
             dT[x] = dT[x].total_seconds()
             SET[x] = SET[x].strftime("%H:%M:%S:%f")
     #End of code to change power values for each new data set
-    
-        EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt, 
+
+        EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt,
         Energy_batt)), columns = EMM_Headers)           #Creating dataframe to export to csv file
         EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
-    
+
         EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({Dataset_num}).csv',index=False)       #Export EMM data to csv file
-    
+
         Dataset_num += 1
-        
+
  #Data sets
 
 
