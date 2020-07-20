@@ -24,6 +24,15 @@ def Array_Power(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calcul
     
     return Pmax*(math.cos(math.radians(phi))**0.3)*math.cos(math.radians(theta))
 
+def Array_Power_np(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calculate the power gain from the solar array
+    SLL = 23.5*np.sin(np.radians((180*(Day-82))/182.5))
+    phi_N = Latitude - SLL
+    phi = 90 - ((90-phi_N)*np.sin(np.radians(180*(Time-Sunrise)/DayLength)))
+    if Driving == True:
+        theta = phi
+    
+    return Pmax*(np.cos(np.radians(phi))**0.3)*np.cos(math.radians(theta))
+
 def Grav_Power(V,M,d,alt1,alt2): #Calculate the power loss due to gravitatational effects
     return V*M*9.81*math.sin(math.atan((alt2-alt1)/1000/d))/3.6
 
@@ -209,34 +218,74 @@ def Generate_Data(Route_Data_csv):
         Time = SET[x]
 
 
-
-
-
     #==========================================START NUMPY==========================================
     
     Seg_Dist_arr = np.tile(np.reshape(np.asarray(Seg_Dist),(Num_Segment,1)),Req_Datasets)
 
     dT_arr = Seg_Dist_arr/Vel_arr*3600
 
-    # time_arr = np.cumsum(dT_arr, axis = 0)
-    # #time_arr = np.split(time_arr, Req_Datasets, axis = 1)
-    # #print(time_arr.shape)
-    # time_arr = np.where(time_arr<32400,time_arr,time_arr-32400)
+    # SST_arr = np.zeros(Num_Segment,Req_Datasets)
+    # SET_arr = np.zeros(Num_Segment,Req_Datasets)
+    # Start_Time = 32400
 
+    # T = Start_Time
+    # for y in range(Req_Datasets):
+    #     for x in range(Num_Segment):
+    #         End_T = SST_arr[x,y] + dT_arr[x,y]
+    #         if End_T > 64800:
+    #             T = Start_Time
+    #         SST_arr[x+1,y] = 
+
+
+
+    
+    time_arr = np.cumsum(dT_arr, axis = 0)
+    SET_arr = time_arr*(time_arr<32400)
+    temp_time_arr = time_arr
+    print(int(np.amax(time_arr//32400)))
+    for x in range(int(np.amax(time_arr//32400))):
+        
+        temp_dT_arr = dT_arr*(temp_time_arr>32400)
+        temp_time_arr = np.cumsum(temp_dT_arr,axis = 0)
+        SET_arr = SET_arr+(temp_time_arr*(temp_time_arr<32400))
+
+    SST_arr = SET_arr-dT_arr
+    # print(time_arr>32400)
+    # # time_arr = np.split(time_arr, Req_Datasets, axis = 1)
+    # # print(time_arr.shape)
+    # # time_check_arr = np.where(time_arr<32400,1,0)
+    # # time_arr = np.where(time_arr<32400, time_arr, time_arr - ((time_arr//32400)*32400))
+    # filter_arr = np.where(time_arr<32400,0,1)
+    # d1_time_sum = np.where(time_arr<32400,time_arr,0)
+    # d2_time_arr = dT_arr*(time_arr>32400)
+    # d2_time_sum = np.cumsum(d2_time_arr, axis = 0)
+    # d2_time_sum = np.where(d2_time_sum<32400, d2_time_sum, 0)
+
+    # d1_2_time_sum = d1_time_sum+d2_time_sum
+
+    # print(rows[0])    
+    # print(cols[0])
+  
     Ap_arr = Aero_Power(A, Cd, p, Vel_arr)
     Rr_arr = Roll_Resist(Crr, Vel_arr, Loaded_Weight)
     Gp_arr = Grav_Power_np(Vel_arr, Loaded_Weight, Seg_Dist_arr, Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1), Route_Data_arr[1:Route_Data_arr.shape[0],2].reshape(Num_Segment,1))
     #print(np.zeros((1,Req_Datasets)).shape)
 
     pVel_arr = np.concatenate((np.zeros((1,Req_Datasets)),Vel_arr[:-1,:]))
-    print(pVel_arr.shape)
+    #print(pVel_arr.shape)
     Kp_arr = Kine_Power_np(Vel_arr, pVel_arr, Seg_Dist_arr, Loaded_Weight)
     # print(Vel_arr[0][0])
-    print(Seg_Dist_arr[1][0])
+    #print(Seg_Dist_arr[1][0])
 
-    test_df = pd.DataFrame(Kp_arr)
-    print(test_df)
+    #print(dT_arr[:,0].shape)
+    test_arr = np.concatenate((dT_arr[:,0].reshape(Num_Segment,1),time_arr[:,0].reshape(Num_Segment,1)),axis = 1)
+    test_df = pd.DataFrame(SET_arr)
+    # test2_df = pd.DataFrame(d1_2_time_sum)
+    # test3_df = pd.DataFrame(np.cumsum(dT_arr*time_check_arr,axis = 0))
+
     test_df.to_csv(Output_path + "\Testing.csv")
+    # test2_df.to_csv(Output_path + "\Testing2.csv")
+    # test3_df.to_csv(Output_path + "\Testing3.csv")
     #---------------END NUMPY---------------------
 
 
