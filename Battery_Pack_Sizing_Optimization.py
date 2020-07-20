@@ -35,9 +35,7 @@ def Array_Power_np(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Cal
 
 def Array_Power_np(Day, Latitude, Time, Sunrise, DayLength, Pmax, Driving): #Calculate the power gain from the solar array
     SLL = 23.5*np.sin(np.radians((180*(Day-82))/182.5))
-    # print(SLL)
     phi_N = Latitude - SLL
-    # print(phi_N)
     phi = 90 - ((90-phi_N)*np.sin(np.radians(180*(Time-Sunrise)/DayLength)))
     if Driving == True:
         theta = phi
@@ -324,26 +322,31 @@ def Generate_Data(Route_Data_csv):
     Sr_arr, Ss_arr = sunrise_np(Route_Data_arr[0:Num_Segment,0].reshape(Num_Segment,1), Route_Data_arr[0:Num_Segment,1].reshape(Num_Segment,1), timezone, datetime.datetime.fromisoformat(Start_Day).date().year, datetime.datetime.fromisoformat(Start_Day).date().month, date_day_arr)
     Dl_arr = Ss_arr - Sr_arr
     Ar_arr = Array_Power_np(Day_arr,Route_Data_arr[0:Num_Segment,0].reshape(Num_Segment,1), SST_arr/3600, Sr_arr/3600, Dl_arr/3600, Max_Array_Power, True)
-
-    # print(np.zeros((1,Req_Datasets)).shape)
-
     pVel_arr = np.concatenate((np.zeros((1,Req_Datasets)),Vel_arr[:-1,:]))
-    #print(pVel_arr.shape)
     Kp_arr = Kine_Power_np(Vel_arr, pVel_arr, Seg_Dist_arr, Loaded_Weight)
     Bp_arr = Batt_Power(Ap_arr, Rr_arr, Gp_arr, Kp_arr, Ar_arr, MotEff, Power_elec)
     BE_arr = Energy(Bp_arr, dT_arr/3600)
-    # print(Vel_arr[0][0])
-    #print(Seg_Dist_arr[1][0])
+    
+    
+    for x in range(Req_Datasets):
+        EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
+        np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
+        EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
+        # EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
 
-    #print(dT_arr[:,0].shape)
-    test_arr = np.concatenate((dT_arr[:,0].reshape(Num_Segment,1),time_arr[:,0].reshape(Num_Segment,1)),axis = 1)
-    test_df = pd.DataFrame(Bp_arr)
-    test2_df = pd.DataFrame(BE_arr)
-    # test3_df = pd.DataFrame(Dl_arr/3600)
+        EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
+    #, Ar_arr[:,x], Ap_arr[:,x], Rr_arr[:,x], Gp_arr[:,x], Kp_arr[:,x], Bp_arr[:,x], BE_arr[:,x]
+    
 
-    test_df.to_csv(Output_path + "\Testing.csv")
-    test2_df.to_csv(Output_path + "\Testing2.csv")
-    # test3_df.to_csv(Output_path + "\Testing3.csv")
+    # #print(dT_arr[:,0].shape)
+    # test_arr = np.concatenate((dT_arr[:,0].reshape(Num_Segment,1),time_arr[:,0].reshape(Num_Segment,1)),axis = 1)
+    # test_df = pd.DataFrame(Bp_arr)
+    # test2_df = pd.DataFrame(BE_arr)
+    # # test3_df = pd.DataFrame(Dl_arr/3600)
+
+    # test_df.to_csv(Output_path + "\Testing.csv")
+    # test2_df.to_csv(Output_path + "\Testing2.csv")
+    # # test3_df.to_csv(Output_path + "\Testing3.csv")
     #---------------END NUMPY---------------------
 
 
@@ -386,11 +389,11 @@ def Generate_Data(Route_Data_csv):
             SET[x] = SET[x].strftime("%H:%M:%S:%f")
     #End of code to change power values for each new data set
 
-        EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt,
-        Energy_batt)), columns = EMM_Headers)           #Creating dataframe to export to csv file
-        EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
+        # EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt,
+        # Energy_batt)), columns = EMM_Headers)           #Creating dataframe to export to csv file
+        # EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
 
-        EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({Dataset_num}).csv',index=False)       #Export EMM data to csv file
+        # EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({Dataset_num}).csv',index=False)       #Export EMM data to csv file
 
         Dataset_num += 1
 
