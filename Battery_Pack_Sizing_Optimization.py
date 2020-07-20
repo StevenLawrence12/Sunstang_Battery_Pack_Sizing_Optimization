@@ -189,16 +189,7 @@ def Generate_Data(Route_Data_csv):
     p = 1.17    #density of air
 
     #Power Variables
-    Power_Array = []    #Power obtain from the solar array
-    Power_Drag = []     #Power consumed from aerodynamic drag
-    Power_Roll = []     #Power consumed from rolling resistance/friction
-    Power_Grav = []     #Power fron gravitational forces
-    Power_Kine = []     #Power from kinetic forces
     Power_elec = 50   #Power consumed from all electronics in the solar car
-    Power_batt = []     #Power requirement from batteries
-
-    #Energy Variables
-    Energy_batt = []    #Battery energy requirement
 
     #Date & Time Variables
     Start_Day = '2021-10-22T09:00:00'                       #Start day & time for race in str, will eventually be a value read from a csv file
@@ -206,85 +197,29 @@ def Generate_Data(Route_Data_csv):
     Date = Time.date()                                      #create date object from Time
     timezone = 9.5                                          #Timezone of the race, will eventually be read in from a csv file
     SR = 0                                                  #Sunrise time
-    dT = []
-    SST = []
-    SET = []
 
     Seg_Dist = []       #distance for each segment
-    Velocity = []       #List of speeds for the differnce race route segments (km/h)
     EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)",
     "Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)"]
 
-    Dataset_num = 0     #Counter for the data set number
-    # Req_Datasets = int(input("How many datasets do you need? "))
-    Req_Datasets = 10
+    Req_Datasets = int(input("How many datasets do you need? "))
+    # Req_Datasets = 10
 
     #Read route data csv file
     Route_Data_df = pd.read_csv(Route_Data_csv)     #Load in route data to a dataframe
     Route_Data_arr = Route_Data_df.to_numpy()
-    # Route_Data_arr = np.hsplit(Route_Data_arr,3)
-    # lat_arr = Route_Data_arr[0]
-    # long_arr = Route_Data_arr[1]
-    # alt_arr = Route_Data_arr[2]
-
     Vel_df = pd.read_csv(Output_path + "\Inital_Velocities.csv")
     Vel_arr = Vel_df.to_numpy()
 
 
-
     Num_Segment = Vel_df.shape[0] #calculate the number of race route segments
-    #print(Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1))
-
-
-    SR = sunrise(Route_Data_df['latitude'][0], Route_Data_df['longitude'][0], timezone, Time.date())
-    for x in range(Num_Segment):
-        Velocity.append(random.randrange(25,88))  #Solar Car Speed **This needs to be a list/array with a size of the number of data points along the route - 1]
-    #Calculate Powers
+    
     for x in range(Num_Segment):
         Seg_Dist.append(Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371))
-        dT.append(delta_T(Velocity[x],Seg_Dist[x]))
-
-
-        End_Time = Time+dT[x]
-        if End_Time.hour == 18:
-            Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
-            SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
-        SST.append(Time.time())
-        SET.append(Time+dT[x])
-
-        Power_Array.append(Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
-        SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1))
-        Power_Drag.append(Aero_Power(A, Cd, p, Velocity[x]))
-        Power_Roll.append(Roll_Resist(Crr, Velocity[x], Loaded_Weight))
-        Power_Grav.append(Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Route_Data_df['altitude'][x], Route_Data_df['altitude'][x+1]))
-        Power_Kine.append(Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x]))
-        Power_batt.append(Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec))
-        Energy_batt.append(Energy(Power_batt[x], dT[x].total_seconds()/3600))
-
-        Time = SET[x]
-
-
-    #==========================================START NUMPY==========================================
 
     Seg_Dist_arr = np.tile(np.reshape(np.asarray(Seg_Dist),(Num_Segment,1)),Req_Datasets)
-
     dT_arr = Seg_Dist_arr/Vel_arr*3600
-
-    # SST_arr = np.zeros(Num_Segment,Req_Datasets)
-    # SET_arr = np.zeros(Num_Segment,Req_Datasets)
-    # Start_Time = 32400
-
-    # T = Start_Time
-    # for y in range(Req_Datasets):
-    #     for x in range(Num_Segment):
-    #         End_T = SST_arr[x,y] + dT_arr[x,y]
-    #         if End_T > 64800:
-    #             T = Start_Time
-    #         SST_arr[x+1,y] =
-
-
     date_day_arr = np.full((Num_Segment, Req_Datasets),datetime.datetime.fromisoformat(Start_Day).date().day, dtype='float64')
-
     time_arr = np.cumsum(dT_arr, axis = 0)
     SET_arr = time_arr*(time_arr<32400)
     temp_time_arr = time_arr
@@ -298,24 +233,6 @@ def Generate_Data(Route_Data_csv):
     Day_arr += datetime.datetime.fromisoformat(Start_Day).timetuple().tm_yday
     SET_arr += 32400
     SST_arr = SET_arr-dT_arr
-    # print(SET_arr)
-
-    # print(time_arr>32400)
-    # # time_arr = np.split(time_arr, Req_Datasets, axis = 1)
-    # # print(time_arr.shape)
-    # # time_check_arr = np.where(time_arr<32400,1,0)
-    # # time_arr = np.where(time_arr<32400, time_arr, time_arr - ((time_arr//32400)*32400))
-    # filter_arr = np.where(time_arr<32400,0,1)
-    # d1_time_sum = np.where(time_arr<32400,time_arr,0)
-    # d2_time_arr = dT_arr*(time_arr>32400)
-    # d2_time_sum = np.cumsum(d2_time_arr, axis = 0)
-    # d2_time_sum = np.where(d2_time_sum<32400, d2_time_sum, 0)
-
-    # d1_2_time_sum = d1_time_sum+d2_time_sum
-
-    # print(rows[0])
-    # print(cols[0])
-
     Ap_arr = Aero_Power(A, Cd, p, Vel_arr)
     Rr_arr = Roll_Resist(Crr, Vel_arr, Loaded_Weight)
     Gp_arr = Grav_Power_np(Vel_arr, Loaded_Weight, Seg_Dist_arr, Route_Data_arr[0:Num_Segment,2].reshape(Num_Segment,1), Route_Data_arr[1:Route_Data_arr.shape[0],2].reshape(Num_Segment,1))
@@ -327,82 +244,17 @@ def Generate_Data(Route_Data_csv):
     Bp_arr = Batt_Power(Ap_arr, Rr_arr, Gp_arr, Kp_arr, Ar_arr, MotEff, Power_elec)
     BE_arr = Energy(Bp_arr, dT_arr/3600)
     
-    
     for x in range(Req_Datasets):
         EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
         np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
         EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
-        # EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
+        EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
 
         EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
-    #, Ar_arr[:,x], Ap_arr[:,x], Rr_arr[:,x], Gp_arr[:,x], Kp_arr[:,x], Bp_arr[:,x], BE_arr[:,x]
     
-
-    # #print(dT_arr[:,0].shape)
-    # test_arr = np.concatenate((dT_arr[:,0].reshape(Num_Segment,1),time_arr[:,0].reshape(Num_Segment,1)),axis = 1)
-    # test_df = pd.DataFrame(Bp_arr)
-    # test2_df = pd.DataFrame(BE_arr)
-    # # test3_df = pd.DataFrame(Dl_arr/3600)
-
-    # test_df.to_csv(Output_path + "\Testing.csv")
-    # test2_df.to_csv(Output_path + "\Testing2.csv")
-    # # test3_df.to_csv(Output_path + "\Testing3.csv")
-    #---------------END NUMPY---------------------
-
-
-
-
-
-    #Code to change power values for each new data set
-    while Dataset_num != Req_Datasets:
-        Time = datetime.datetime.fromisoformat(Start_Day)       #create datetime object from the Stat_Day str
-        for x in range(Num_Segment):
-            Velocity[x] = random.randrange(25,120)
-        for x in range(Num_Segment):
-            # dT[x] = delta_T(Vel_arr[x][Dataset_num],Seg_Dist[x])
-            dT[x] = delta_T(Velocity[x],Seg_Dist[x])
-
-            End_Time = Time+dT[x]
-            if End_Time.hour == 18:
-                Time = Time.replace(day=Time.day+1, hour=9, minute=0, second=0, microsecond=0)
-                SR = sunrise(Route_Data_df['latitude'][x], Route_Data_df['longitude'][x], timezone, Time.date())
-            SST[x] = Time
-            SET[x] = Time+dT[x]
-
-            Power_Array[x] = Array_Power(Time.timetuple().tm_yday,Route_Data_df['latitude'][x],conv_to_DT(Time.hour,Time.minute,Time.second,Time.microsecond),conv_to_DT(SR.hour,SR.minute,SR.second,
-            SR.microsecond), DL.total_seconds()/3600,Max_Array_Power,1)
-            # Power_Drag[x] = Aero_Power(A, Cd, p, Vel_arr[x][Dataset_num])
-            # Power_Roll[x] = Roll_Resist(Crr, Vel_arr[x][Dataset_num], Loaded_Weight)
-            # Power_Grav[x] = Grav_Power(Vel_arr[x][Dataset_num], Loaded_Weight, Seg_Dist[x], Route_Data_df['altitude'][x], Route_Data_df['altitude'][x+1])
-            # Power_Kine[x] = Kine_Power(Vel_arr[x][Dataset_num], Vel_arr[x-1][Dataset_num], Seg_Dist[x], Loaded_Weight, SST[x])
-            Power_Drag[x] = Aero_Power(A, Cd, p, Velocity[x])
-            Power_Roll[x] = Roll_Resist(Crr, Velocity[x], Loaded_Weight)
-            Power_Grav[x] = Grav_Power(Velocity[x], Loaded_Weight, Seg_Dist[x], Route_Data_df['altitude'][x], Route_Data_df['altitude'][x+1])
-            Power_Kine[x] = Kine_Power(Velocity[x], Velocity[x-1], Seg_Dist[x], Loaded_Weight, SST[x])
-
-            Power_batt[x] = Batt_Power(Power_Drag[x], Power_Roll[x], Power_Grav[x], Power_Kine[x], Power_Array[x], MotEff, Power_elec)
-            Energy_batt[x] = Energy(Power_batt[x], dT[x].total_seconds()/3600)
-
-            Time = SET[x]
-            SST[x] = SST[x].strftime("%H:%M:%S:%f")
-            dT[x] = dT[x].total_seconds()
-            SET[x] = SET[x].strftime("%H:%M:%S:%f")
-    #End of code to change power values for each new data set
-
-        # EMM_Data_df = pd.DataFrame(list(zip(Seg_Dist, Velocity, SST, dT, SET, Power_Array, Power_Drag, Power_Roll, Power_Grav, Power_Kine, Power_batt,
-        # Energy_batt)), columns = EMM_Headers)           #Creating dataframe to export to csv file
-        # EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
-
-        # EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({Dataset_num}).csv',index=False)       #Export EMM data to csv file
-
-        Dataset_num += 1
-
- #Data sets
-
-
 Output_path = r'D:\.Steven Data\Extracurricular\Sunstang/2020-2021\Strategy\Code\Output_Data'
-# Route_Data_csv = input("Which competition route dataset would you like to input? ")
-Route_Data_csv = "WSC_Route_Data.csv"
+Route_Data_csv = input("Which competition route dataset would you like to input? ")
+# Route_Data_csv = "WSC_Route_Data.csv"
 Generate_Data(Route_Data_csv)
 print(time.time()-start_time)
 
