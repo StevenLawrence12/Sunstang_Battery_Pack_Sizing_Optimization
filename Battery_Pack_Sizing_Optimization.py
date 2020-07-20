@@ -1,7 +1,3 @@
-# import timeit
-# code_to_test = """
-import time
-start_time = time.time()
 import math
 import datetime
 import random
@@ -174,7 +170,7 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
 def Kine_Power_np(V_now, V_past, Dist, M):
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
-def Generate_Data(Route_Data_csv):
+def P_Calc_Main(Route_Data_csv, Gen_Size):
     #Vehicle Specifications
     A = 2.38                                    #Frontal area of solar car
     Cd = 0.19                                   #Drag Coefficient of solar car
@@ -202,13 +198,14 @@ def Generate_Data(Route_Data_csv):
     EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)",
     "Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)"]
 
-    Req_Datasets = int(input("How many datasets do you need? "))
+    Req_Datasets = Gen_Size
     # Req_Datasets = 10
+    Output_path = r'D:\.Steven Data\Extracurricular\Sunstang/2020-2021\Strategy\Code\Output_Data'
 
     #Read route data csv file
-    Route_Data_df = pd.read_csv(Route_Data_csv)     #Load in route data to a dataframe
+    Route_Data_df = Route_Data_csv
     Route_Data_arr = Route_Data_df.to_numpy()
-    Vel_df = pd.read_csv(Output_path + "\Inital_Velocities.csv")
+    Vel_df = pd.read_csv(Output_path + "\Velocities.csv")
     Vel_arr = Vel_df.to_numpy()
 
 
@@ -251,12 +248,3 @@ def Generate_Data(Route_Data_csv):
         EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
 
         EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
-    
-Output_path = r'D:\.Steven Data\Extracurricular\Sunstang/2020-2021\Strategy\Code\Output_Data'
-Route_Data_csv = input("Which competition route dataset would you like to input? ")
-# Route_Data_csv = "WSC_Route_Data.csv"
-Generate_Data(Route_Data_csv)
-print(time.time()-start_time)
-
-# elapsed_time = timeit.timeit(code_to_test)
-# print(elapsed_time)

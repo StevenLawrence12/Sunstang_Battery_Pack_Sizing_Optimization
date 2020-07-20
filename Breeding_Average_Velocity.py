@@ -3,29 +3,30 @@ import pandas as pd
 from itertools import combinations
 import random
 
-mut_prob = .05
-min_vel = 25
-max_vel = 120
-# mut_loc = []
-path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
-Parent_vel_df = pd.read_csv(path + "\Breeding_Parents.csv", header=None)
-Combinations = list(combinations(range(Parent_vel_df.shape[1]),2))
-offspring_num = len(Combinations)
+def Breed_Main():
+    mut_prob = .05
+    min_vel = 25
+    max_vel = 120
+    # mut_loc = []
+    path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
+    Parent_vel_df = pd.read_csv(path + "\Breeding_Parents.csv", header=None)
+    Combinations = list(combinations(range(Parent_vel_df.shape[1]),2))
+    offspring_num = len(Combinations)
 
-par_vel_arr = Parent_vel_df.to_numpy()
-off_vel_arr = np.empty([Parent_vel_df.shape[0], offspring_num])
+    par_vel_arr = Parent_vel_df.to_numpy()
+    off_vel_arr = np.empty([Parent_vel_df.shape[0], offspring_num])
 
-for x in range(offspring_num):
-    P1_idx = Combinations[x][0]
-    P2_idx = Combinations[x][1]
-    
-    for vel in range(Parent_vel_df.shape[0]):
-        off_vel_arr[vel][x] = (Parent_vel_df.iloc[vel,P1_idx]+Parent_vel_df.iloc[vel,P2_idx])/2
-        if random.random() < mut_prob:
-            off_vel_arr[vel][x] = random.randrange(min_vel, max_vel)
-#             mut_loc.append((vel,x))
+    for x in range(offspring_num):
+        P1_idx = Combinations[x][0]
+        P2_idx = Combinations[x][1]
+        
+        for vel in range(Parent_vel_df.shape[0]):
+            off_vel_arr[vel][x] = (Parent_vel_df.iloc[vel,P1_idx]+Parent_vel_df.iloc[vel,P2_idx])/2
+            if random.random() < mut_prob:
+                off_vel_arr[vel][x] = random.randrange(min_vel, max_vel)
+    #             mut_loc.append((vel,x))
 
-# mut_loc_arr = np.asarray(mut_loc)
+    # mut_loc_arr = np.asarray(mut_loc)
 
-new_gen_df = pd.DataFrame(np.concatenate((par_vel_arr,off_vel_arr),axis=1))
-new_gen_df.to_csv(path + r"\New_Generation.csv", index=False)
+    new_gen_df = pd.DataFrame(np.concatenate((par_vel_arr,off_vel_arr),axis=1))
+    new_gen_df.to_csv(path + r"\Velocities.csv", index=False)
