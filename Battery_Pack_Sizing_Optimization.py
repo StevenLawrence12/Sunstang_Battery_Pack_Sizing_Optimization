@@ -170,7 +170,7 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
 def Kine_Power_np(V_now, V_past, Dist, M):
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
-def P_Calc_Main(Route_Data_csv, Gen_Size):
+def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
     #Vehicle Specifications
     A = 2.38                                    #Frontal area of solar car
     Cd = 0.19                                   #Drag Coefficient of solar car
@@ -200,12 +200,12 @@ def P_Calc_Main(Route_Data_csv, Gen_Size):
 
     Req_Datasets = Gen_Size
     # Req_Datasets = 10
-    Output_path = r'D:\.Steven Data\Extracurricular\Sunstang/2020-2021\Strategy\Code\Output_Data'
+    # Output_path = r'D:\.Steven Data\Extracurricular\Sunstang/2020-2021\Strategy\Code\Output_Data'
 
     #Read route data csv file
     Route_Data_df = Route_Data_csv
     Route_Data_arr = Route_Data_df.to_numpy()
-    Vel_df = pd.read_csv(Output_path + "\Velocities.csv")
+    Vel_df = pd.read_csv(Output + "\Velocities.csv")
     Vel_arr = Vel_df.to_numpy()
 
 
@@ -247,4 +247,4 @@ def P_Calc_Main(Route_Data_csv, Gen_Size):
         EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
         EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
 
-        EMM_Data_df.to_csv(Output_path + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
+        EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
