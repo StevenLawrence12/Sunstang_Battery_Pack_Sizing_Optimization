@@ -5,7 +5,7 @@ def Mating_Main():
     path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
     GG_df = pd.read_csv(path + "\Generation Genotypes.csv")
 
-    num_parents = 4 # number of parents
+    num_parents = 4 # num of parents
     parents_vel_df = []
 
     for parent_num in range(num_parents):
