@@ -4,6 +4,9 @@ import random
 import numpy as np
 import pandas as pd
 import os
+import time
+
+Seg_Dist = []       #distance for each segment
 
 def Aero_Power(A, Cd, p, V): #Aerodynamic power loss calculation
     return 0.5*p*(V/3.6)**3*A*Cd
@@ -194,7 +197,7 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
     timezone = 9.5                                          #Timezone of the race, will eventually be read in from a csv file
     SR = 0                                                  #Sunrise time
 
-    Seg_Dist = []       #distance for each segment
+    
     EMM_Headers = ["Segment Distance (km)","Segment Velocity (km/h)","Segment Start Time","Segment Elapsed Time (s)","Segment End Time", "Array Power (W)", "Aero Power (W)", "Rolling Power (W)",
     "Gravitaional Power (W)","Kinetic Power (W)", "Battery Power (W)", "Battery Energy Consumption (kWh)"]
 
@@ -211,8 +214,16 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
 
     Num_Segment = Vel_df.shape[0] #calculate the number of race route segments
     
-    for x in range(Num_Segment):
-        Seg_Dist.append(Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371))
+    t0 = time.time()
+
+    if len(Seg_Dist) == 0:
+        for x in range(Num_Segment):
+            Seg_Dist.append(Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371))
+            print("Done")
+
+    t1 = time.time()
+
+    print(t1 - t0)
 
     Seg_Dist_arr = np.tile(np.reshape(np.asarray(Seg_Dist),(Num_Segment,1)),Req_Datasets)
     dT_arr = Seg_Dist_arr/Vel_arr*3600
