@@ -18,8 +18,10 @@ def main_f():
     Tk().withdraw()
     Route_Data_df = pd.read_csv(askopenfilename())
     Generation_Size = int(input("How many datasets do you need? "))
+    printAll = input("Do you want to view all energy management models (Y or N)? ").upper()
+    # printAll.upper()    
     Vel = np.random.randint(low=min_vel,high=max_vel,size=(Route_Data_df.shape[0]-1,num_pop))
     Vel_df = pd.DataFrame(Vel)
     Vel_df.to_csv(Output_path + "\Velocities.csv", index=False)
 
-    return Route_Data_df, Generation_Size, Output_path
+    return Route_Data_df, Generation_Size, Output_path, printAll

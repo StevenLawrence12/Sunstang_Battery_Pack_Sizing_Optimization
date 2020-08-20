@@ -173,7 +173,9 @@ def Kine_Power(V_now, V_past, Dist, M, Time):
 def Kine_Power_np(V_now, V_past, Dist, M):
     return 5.46e-7*M*9.81*(((V_now**2-V_past**2)*(V_now+V_past))/(Dist))
 
-def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
+def P_Calc_Main(Route_Data_csv, Gen_Size, Output, Print):
+    t4 = time.time()
+
     #Vehicle Specifications
     A = 2.38                                    #Frontal area of solar car
     Cd = 0.19                                   #Drag Coefficient of solar car
@@ -213,17 +215,10 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
 
 
     Num_Segment = Vel_df.shape[0] #calculate the number of race route segments
-    
-    t0 = time.time()
 
     if len(Seg_Dist) == 0:
         for x in range(Num_Segment):
             Seg_Dist.append(Haversine(Route_Data_df['latitude'][x],Route_Data_df['latitude'][x+1], Route_Data_df['longitude'][x], Route_Data_df['longitude'][x+1], 6371))
-            print("Done")
-
-    t1 = time.time()
-
-    print(t1 - t0)
 
     Seg_Dist_arr = np.tile(np.reshape(np.asarray(Seg_Dist),(Num_Segment,1)),Req_Datasets)
     dT_arr = Seg_Dist_arr/Vel_arr*3600
@@ -232,11 +227,13 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
     SET_arr = time_arr*(time_arr<32400)
     temp_time_arr = time_arr
     Day_arr = np.zeros((Num_Segment, Req_Datasets))
+
     for x in range(int(np.amax(time_arr//32400))):
         Day_arr = Day_arr + np.multiply(temp_time_arr>32400,1)
         temp_dT_arr = dT_arr*(temp_time_arr>32400)
         temp_time_arr = np.cumsum(temp_dT_arr,axis = 0)
         SET_arr = SET_arr+(temp_time_arr*(temp_time_arr<32400))
+
     date_day_arr += Day_arr
     Day_arr += datetime.datetime.fromisoformat(Start_Day).timetuple().tm_yday
     SET_arr += 32400
@@ -252,10 +249,39 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output):
     Bp_arr = Batt_Power(Ap_arr, Rr_arr, Gp_arr, Kp_arr, Ar_arr, MotEff, Power_elec)
     BE_arr = Energy(Bp_arr, dT_arr/3600)
     
-    for x in range(Req_Datasets):
-        EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
-        np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
-        EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
-        EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
+    t0 = time.time()
 
-        EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
+    if Print == "N" :
+        for x in range(0, Req_Datasets, 4):
+            t2 = time.time()
+
+            EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
+            np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
+            EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
+            EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
+
+            EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
+
+            t3 = time.time()
+            print("CSV", x, "write time:", t3 - t2)
+
+    else :
+        for x in range(Req_Datasets):
+            t2 = time.time()
+
+            EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
+            np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
+            EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
+            EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
+
+            EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
+
+            t3 = time.time()
+            print("CSV", x, "write time:", t3 - t2)
+        
+
+    t1 = time.time()
+    print("Total CSV write time:", t1 - t0)
+    print("Function runtime:", t1 - t4)
+    print()
+    print()
