@@ -3,7 +3,7 @@ import pandas as pd
 from itertools import combinations
 import random
 
-def Breed_Main():
+def Breed_Main(Generation_Size):
     mut_prob = .05
     min_vel = 25
     max_vel = 120
@@ -11,7 +11,8 @@ def Breed_Main():
     path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
     Parent_vel_df = pd.read_csv(path + "\Breeding_Parents.csv", header=None)
     Combinations = list(combinations(range(Parent_vel_df.shape[1]),2))
-    offspring_num = len(Combinations)
+    num_parents = int(0.2*Generation_Size) # number of parents calculation
+    offspring_num = Generation_Size - num_parents
 
     par_vel_arr = Parent_vel_df.to_numpy()
     off_vel_arr = np.empty([Parent_vel_df.shape[0], offspring_num])

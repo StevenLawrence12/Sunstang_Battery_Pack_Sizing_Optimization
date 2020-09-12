@@ -10,7 +10,7 @@ num_generations = 100
 for generations in range(num_generations):
     BPSO.P_Calc_Main(Route, Generation_Size)
     ft.FT_Main()
-    mp.Mating_Main()
-    breed.Breed_Main()
+    mp.Mating_Main(Generation_Size)
+    breed.Breed_Main(Generation_Size)
 
 
