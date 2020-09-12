@@ -43,6 +43,3 @@ for generations in range(num_generations):
 
 t6 = time.time()
 print("Time to complete program:", t6 - t5)
-
-
-

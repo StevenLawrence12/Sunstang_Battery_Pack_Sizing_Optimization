@@ -4,7 +4,6 @@ import random
 import numpy as np
 import pandas as pd
 import os
-import time
 
 Seg_Dist = []       #distance for each segment
 
@@ -248,8 +247,6 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output, Vel_df, Counter):
     Kp_arr = Kine_Power_np(Vel_arr, pVel_arr, Seg_Dist_arr, Loaded_Weight)
     Bp_arr = Batt_Power(Ap_arr, Rr_arr, Gp_arr, Kp_arr, Ar_arr, MotEff, Power_elec)
     BE_arr = Energy(Bp_arr, dT_arr/3600)
-    
-    t0 = time.time()
 
     EMM_Data_df_arr = []
 
@@ -267,41 +264,5 @@ def P_Calc_Main(Route_Data_csv, Gen_Size, Output, Vel_df, Counter):
             EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model(End).csv',index=False)       #Export EMM data to csv file
 
         EMM_Data_df_arr.append(EMM_Data_df)
-
-    # if Print == "N" :
-    #     for x in range(0, Req_Datasets, 4):
-    #         t2 = time.time()
-
-    #         EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
-    #         np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
-    #         EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
-    #         EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
-
-    #         EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
-
-    #         t3 = time.time()
-    #         print("CSV", x, "write time:", t3 - t2)
-
-    # else :
-    #     for x in range(Req_Datasets):
-    #         t2 = time.time()
-
-    #         EMM_data_arr = np.concatenate((np.hsplit(Seg_Dist_arr,Req_Datasets)[x], np.hsplit(Vel_arr,Req_Datasets)[x], np.hsplit(SST_arr,Req_Datasets)[x], np.hsplit(dT_arr,Req_Datasets)[x], np.hsplit(SET_arr,Req_Datasets)[x], np.hsplit(Ar_arr,Req_Datasets)[x], 
-    #         np.hsplit(Ap_arr,Req_Datasets)[x], np.hsplit(Rr_arr,Req_Datasets)[x], np.hsplit(Gp_arr,Req_Datasets)[x], np.hsplit(Kp_arr,Req_Datasets)[x], np.hsplit(Bp_arr,Req_Datasets)[x], np.hsplit(BE_arr,Req_Datasets)[x]), axis = 1)
-    #         EMM_Data_df = pd.DataFrame(EMM_data_arr, columns = EMM_Headers)
-    #         EMM_Data_df.insert(10, "Parasitic Power (W)", Power_elec)   #Adding parasitic power column of same value
-
-    #         EMM_Data_df.to_csv(Output + f'\WSC Energy Management Model({x}).csv',index=False)       #Export EMM data to csv file
-
-    #         t3 = time.time()
-    #         print("CSV", x, "write time:", t3 - t2)
-        
-
-    # t1 = time.time()
-    # print("Total CSV write time:", t1 - t0)
-    # print("Function runtime:", t1 - t4)
-    # print()
-    # print()
-
 
     return EMM_Data_df_arr

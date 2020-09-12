@@ -15,11 +15,6 @@ def Target_Speed_Derate(V):     #V = km/h
     return T
 
 def FT_Main(Output, Data_Frames, Counter):
-    #Prepare to read multiple csv files
-    # path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
-    # filenames = glob.glob(Output + "\WSC Energy*.csv")
-
-    # dfs = [pd.read_csv(f) for f in filenames] #reading all the csv energy management model files
 
     Headers = np.array([['Data Set #', 'Average Velocity (km/h)', 'Total Battery Energy Consumption (kWh)','Target Speed Derate','ASC Score']]) # All the criteria that we are using to determine each indiviudals fitness 
     Genotype_array = np.empty((0, np.size(Headers, axis = 1))) #Creating an empty array for all the genotypes
@@ -34,5 +29,3 @@ def FT_Main(Output, Data_Frames, Counter):
         Genotype_df.to_csv(Output + "\Generation Genotypes.csv", index = False)       #export the dataframe to a csv file
 
     return Genotype_df
-
-    # Genotype_df.to_csv(Output + "\Generation Genotypes.csv", index = False)       #export the dataframe to a csv file

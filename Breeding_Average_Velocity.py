@@ -33,5 +33,4 @@ def Breed_Main(Output, Parent_vel_df, Counter):
     if Counter == 99:
         new_gen_df.to_csv(Output + r"\Velocities.csv", index=False)
 
-    # new_gen_df.to_csv(Output + r"\Velocities.csv", index=False)
     return new_gen_df
