@@ -3,13 +3,13 @@ import pandas as pd
 from itertools import combinations
 import random
 
-def Breed_Main(Output):
+def Breed_Main(Output, Parent_vel_df, Counter):
     mut_prob = .05
     min_vel = 25
     max_vel = 120
     # mut_loc = []
     # path = r'D:\.Steven Data\Extracurricular\Sunstang\2020-2021\Strategy\Code\Output_Data'
-    Parent_vel_df = pd.read_csv(Output + "\Breeding_Parents.csv", header=None)
+    # Parent_vel_df = pd.read_csv(Output + "\Breeding_Parents.csv", header=None)
     Combinations = list(combinations(range(Parent_vel_df.shape[1]),2))
     offspring_num = len(Combinations)
 
@@ -29,4 +29,9 @@ def Breed_Main(Output):
     # mut_loc_arr = np.asarray(mut_loc)
 
     new_gen_df = pd.DataFrame(np.concatenate((par_vel_arr,off_vel_arr),axis=1))
-    new_gen_df.to_csv(Output + r"\Velocities.csv", index=False)
+
+    if Counter == 99:
+        new_gen_df.to_csv(Output + r"\Velocities.csv", index=False)
+
+    # new_gen_df.to_csv(Output + r"\Velocities.csv", index=False)
+    return new_gen_df
